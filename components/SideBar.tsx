@@ -1,19 +1,19 @@
-import React, { useRef, useEffect } from 'react';
-import {
-    StyleSheet,
-    View,
-    TouchableOpacity,
-    Modal,
-    Animated,
-    Dimensions,
-    Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import {
+    Alert,
+    Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -117,14 +117,14 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                     <ThemedView style={styles.menuContent}>
                         {!isAuthenticated ? (
                             <>
-                                <MenuItemButton icon="log-in-outline" title="Sign In" onPress={() => handleMenuItemPress('Auth')} />
-                                <MenuItemButton icon="person-add-outline" title="Sign Up" onPress={() => handleMenuItemPress('Auth')} />
+                                <MenuItemButton icon="log-in-outline" title="Sign In" onPress={() => handleMenuItemPress('AuthScreen')} />
+                                <MenuItemButton icon="person-add-outline" title="Sign Up" onPress={() => handleMenuItemPress('AuthScreen')} />
                             </>
                         ) : (
                             <>
                                 <MenuItemButton icon="person-outline" title="Profile" onPress={() => handleMenuItemPress('Profile')} />
-                                <MenuItemButton icon="trophy-outline" title="My Badges" onPress={() => handleMenuItemPress('Badges')} />
-                                <MenuItemButton icon="checkmark-circle-outline" title="Progress" onPress={() => handleMenuItemPress('Progress')} />
+                                <MenuItemButton icon="trophy-outline" title="My Badges" onPress={() => handleMenuItemPress('badges')} />
+                                <MenuItemButton icon="checkmark-circle-outline" title="Progress" onPress={() => handleMenuItemPress('progress')} />
                                 <MenuItemButton icon="library-outline" title="Quiz History" onPress={() => handleMenuItemPress('QuizHistory')} />
 
                                 <View style={styles.menuDivider} />

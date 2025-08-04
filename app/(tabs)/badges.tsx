@@ -22,280 +22,163 @@ const { width } = Dimensions.get('window');
 
 export default function BadgesScreen() {
   const navigation = useNavigation();
-  const progress = useProgress();
   const { isAuthenticated, user } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const colorScheme = useColorScheme();
-  const badgeData = useMemo(() => {
-    const quizStats = progress.getAllQuizStats();
+  
+  const {
+    badges,
+    earnedBadges,
+    getBadgeProgress,
+    progressStats,
+    getAllQuizStats
+  } = useProgress();
 
-    const definitions = [
-      // Core Preparedness Milestones
-      {
-        id: 1,
-        name: 'First Aid Hero',
-        description: 'Complete 50% of first aid tasks',
-        icon: 'medical',
-        colors: ['#F44336', '#D32F2F'],
-        category: 'core',
-        earned: progress.getProgressForCategory('firstaid') >= 50
-      },
-      {
-        id: 2,
-        name: 'Emergency Ready',
-        description: 'Complete 100% of emergency essentials',
-        icon: 'shield-checkmark',
-        colors: ['#4CAF50', '#388E3C'],
-        category: 'core',
-        earned: progress.getProgressForCategory('essentials') === 100
-      },
-      {
-        id: 3,
-        name: 'Water Wizard',
-        description: 'Secure your 3-day water supply',
-        icon: 'water',
-        colors: ['#03A9F4', '#0288D1'],
-        category: 'core',
-        earned: !!progress.checklist.find(i => i.id === '1')?.completed
-      },
-      {
-        id: 4,
-        name: 'Planner Pro',
-        description: 'Complete 50% of evacuation planning',
-        icon: 'map',
-        colors: ['#9C27B0', '#7B1FA2'],
-        category: 'core',
-        earned: progress.getProgressForCategory('evacuation') >= 50
-      },
-      {
-        id: 5,
-        name: 'Communication Expert',
-        description: 'Complete 75% of communication tasks',
-        icon: 'wifi',
-        colors: ['#00BCD4', '#0097A7'],
-        category: 'core',
-        earned: progress.getProgressForCategory('communication') >= 75
-      },
-
-      // General Quiz Achievement Badges
-      {
-        id: 6,
-        name: 'Quiz Novice',
-        description: 'Score 70%+ on your first quiz',
-        icon: 'school',
-        colors: ['#FFC107', '#FFA000'],
-        category: 'quiz-general',
-        earned: progress.quizScores.length > 0 && progress.quizScores[0] >= 70
-      },
-      {
-        id: 7,
-        name: 'Perfect Score',
-        description: 'Achieve a 100% score on any quiz',
-        icon: 'star',
-        colors: ['#FFD700', '#FFB300'],
-        category: 'quiz-general',
-        earned: quizStats.perfectScores > 0
-      },
-      {
-        id: 8,
-        name: 'Quiz Master',
-        description: 'Take 10 quizzes across all topics',
-        icon: 'trophy',
-        colors: ['#FF9800', '#F57C00'],
-        category: 'quiz-general',
-        earned: quizStats.totalQuizzesTaken >= 10
-      },
-      {
-        id: 9,
-        name: 'Knowledge Seeker',
-        description: 'Maintain 80%+ average score',
-        icon: 'library',
-        colors: ['#8BC34A', '#689F38'],
-        category: 'quiz-general',
-        earned: quizStats.averageScore >= 80 && quizStats.totalQuizzesTaken >= 3
-      },
-      {
-        id: 10,
-        name: 'Perfect Storm',
-        description: 'Get 100% on 3 different quizzes',
-        icon: 'flash',
-        colors: ['#9C27B0', '#7B1FA2'],
-        category: 'quiz-general',
-        earned: quizStats.perfectScores >= 3
-      },
-
-      // Topic-Specific Quiz Badges
-      {
-        id: 11,
-        name: 'Disaster Preparedness Expert',
-        description: 'Score 90%+ on disaster preparedness quiz',
-        icon: 'shield-checkmark',
-        colors: ['#FF6B35', '#E55A2B'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('disaster-prep') || 0) >= 90
-      },
-      {
-        id: 12,
-        name: 'First Aid Specialist',
-        description: 'Score 90%+ on first aid quiz',
-        icon: 'medical',
-        colors: ['#E74C3C', '#C0392B'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('first-aid') || 0) >= 90
-      },
-      {
-        id: 13,
-        name: 'Fire Safety Champion',
-        description: 'Score 90%+ on fire safety quiz',
-        icon: 'flame',
-        colors: ['#FF4444', '#CC3333'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('fire-safety') || 0) >= 90
-      },
-      {
-        id: 14,
-        name: 'Weather Warrior',
-        description: 'Score 90%+ on severe weather quiz',
-        icon: 'thunderstorm',
-        colors: ['#3498DB', '#2980B9'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('severe-weather') || 0) >= 90
-      },
-      {
-        id: 15,
-        name: 'Security Guardian',
-        description: 'Score 90%+ on home security quiz',
-        icon: 'home',
-        colors: ['#9B59B6', '#8E44AD'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('home-security') || 0) >= 90
-      },
-      {
-        id: 16,
-        name: 'Travel Safety Pro',
-        description: 'Score 90%+ on travel safety quiz',
-        icon: 'airplane',
-        colors: ['#F39C12', '#E67E22'],
-        category: 'quiz-topic',
-        earned: (progress.getQuizScoreForTopic('travel-safety') || 0) >= 90
-      },
-
-      // Advanced Topic Mastery Badges
-      {
-        id: 17,
-        name: 'Topic Explorer',
-        description: 'Take quizzes in all 6 different topics',
-        icon: 'compass',
-        colors: ['#1ABC9C', '#16A085'],
-        category: 'quiz-mastery',
-        earned: Object.keys(progress.topicQuizScores).length >= 6
-      },
-      {
-        id: 18,
-        name: 'Consistent Learner',
-        description: 'Take 3+ quizzes in any single topic',
-        icon: 'refresh',
-        colors: ['#34495E', '#2C3E50'],
-        category: 'quiz-mastery',
-        earned: Object.values(progress.topicQuizScores).some(scores => scores.length >= 3)
-      },
-      {
-        id: 19,
-        name: 'Safety Scholar',
-        description: 'Achieve 85%+ average in 3+ topics',
-        icon: 'book',
-        colors: ['#8E44AD', '#7D3C98'],
-        category: 'quiz-mastery',
-        earned: Object.values(quizStats.topicStats).filter(stat => stat.average >= 85).length >= 3
-      },
-      {
-        id: 20,
-        name: 'Ultimate Safety Expert',
-        description: 'Score 95%+ in all 6 topics',
-        icon: 'medal',
-        colors: ['#FFD700', '#FFA500'],
-        category: 'quiz-mastery',
-        earned: Object.keys(progress.topicQuizScores).length >= 6 &&
-          Object.values(quizStats.topicStats).every(stat => stat.best >= 95)
-      },
-
-      // Community & Engagement (Static examples for now)
-      {
-        id: 21,
-        name: 'Community Helper',
-        description: 'Participate in a local safety campaign',
-        icon: 'people',
-        colors: ['#00BCD4', '#0097A7'],
-        category: 'community',
-        earned: true
-      },
-      {
-        id: 22,
-        name: 'Mentor Badge',
-        description: 'Help 5 new users get started',
-        icon: 'hand-left',
-        colors: ['#673AB7', '#512DA8'],
-        category: 'community',
-        earned: false
-      }
-    ];
-
+  const getThemeColors = () => {
+    const isDark = colorScheme === 'dark';
     return {
-      corePreparednessMilestones: definitions.filter(b => b.category === 'core'),
-      quizGeneral: definitions.filter(b => b.category === 'quiz-general'),
-      quizTopic: definitions.filter(b => b.category === 'quiz-topic'),
-      quizMastery: definitions.filter(b => b.category === 'quiz-mastery'),
-      communityOutreach: definitions.filter(b => b.category === 'community'),
-      allBadges: definitions
+      iconColor: isDark ? '#FFFFFF' : '#333333',
+      cardBackground: isDark ? '#2A2A2A' : '#FFFFFF',
+      borderColor: isDark ? '#444444' : '#E0E0E0',
+      mutedText: isDark ? '#AAAAAA' : '#666666',
+      overlay: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.5)',
+      progressBg: isDark ? '#444444' : '#E0E0E0',
     };
-  }, [progress]);
+  };
 
-  const totalEarned = badgeData.allBadges.filter(b => b.earned).length;
+  const themeColors = getThemeColors();
 
-  const BadgeItem = ({ badge }: { badge: any }) => (
-    <ThemedView style={[styles.badgeContainer, { width: (width - 60) / 2 }]}>
-      <LinearGradient
-        colors={badge.earned ? badge.colors : ['#F0F0F0', '#E0E0E0']}
-        style={styles.badgeCircle}
-      >
-        <Ionicons
-          name={badge.icon as any}
-          size={32}
-          color={badge.earned ? '#FFFFFF' : '#BDBDBD'}
-        />
-      </LinearGradient>
-      <ThemedText
-        type="defaultSemiBold"
-        style={[styles.badgeName, !badge.earned && styles.disabledText]}
-      >
-        {badge.name}
-      </ThemedText>
-      <ThemedText
-        style={[styles.badgeDescription, !badge.earned && styles.disabledText]}
-      >
-        {badge.description}
-      </ThemedText>
-    </ThemedView>
-  );
+  // Organize badges by category
+  const badgesByCategory = useMemo(() => {
+    const categorized = {
+      progress: badges.filter(b => b.category === 'progress'),
+      quiz: badges.filter(b => b.category === 'quiz'),
+      streak: badges.filter(b => b.category === 'streak'),
+      special: badges.filter(b => b.category === 'special')
+    };
 
+    return categorized;
+  }, [badges]);
 
-  const SectionHeader = ({ title, count }: { title: string; count?: number }) => (
-    <ThemedView style={styles.sectionHeader}>
-      <ThemedText type="subtitle">{title}</ThemedText>
-      {count !== undefined && (
-        <ThemedText style={styles.sectionCount}>
-          {count} earned
+  const totalEarned = earnedBadges.length;
+  const totalBadges = badges.length;
+
+  const getUserDisplayName = () => {
+    if (!user) return 'A';
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return 'A';
+  };
+
+  const getBadgeColors = (badge: any) => {
+    if (badge.earned) {
+      return [badge.color, badge.color];
+    }
+    return ['#F0F0F0', '#E0E0E0'];
+  };
+
+  const BadgeItem = ({ badge }: { badge: any }) => {
+    const progress = getBadgeProgress(badge.id);
+    const isEarned = badge.earned;
+    
+    return (
+      <ThemedView style={[styles.badgeContainer, { width: (width - 60) / 2 }]}>
+        <View style={styles.badgeWrapper}>
+          <LinearGradient
+            colors={getBadgeColors(badge)}
+            style={styles.badgeCircle}
+          >
+            <Ionicons
+              name={badge.icon as any}
+              size={32}
+              color={isEarned ? '#FFFFFF' : '#BDBDBD'}
+            />
+          </LinearGradient>
+          
+          {/* Progress indicator for unearned badges */}
+          {!isEarned && progress < 100 && (
+            <View style={styles.progressRing}>
+              <ThemedText style={styles.progressText}>{progress}%</ThemedText>
+            </View>
+          )}
+          
+          {/* Earned indicator */}
+          {isEarned && (
+            <View style={styles.earnedIndicator}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            </View>
+          )}
+        </View>
+        
+        <ThemedText
+          type="defaultSemiBold"
+          style={[styles.badgeName, !isEarned && styles.disabledText]}
+        >
+          {badge.name}
         </ThemedText>
-      )}
-    </ThemedView>
-  );
+        <ThemedText
+          style={[styles.badgeDescription, !isEarned && styles.disabledText]}
+        >
+          {badge.description}
+        </ThemedText>
+        
+        {/* Show earned date if available */}
+        {isEarned && badge.earnedAt && (
+          <ThemedText style={styles.earnedDate}>
+            Earned {new Date(badge.earnedAt).toLocaleDateString()}
+          </ThemedText>
+        )}
+      </ThemedView>
+    );
+  };
+
+  const SectionHeader = ({ title, badges: sectionBadges }: { title: string; badges: any[] }) => {
+    const earnedCount = sectionBadges.filter(b => b.earned).length;
+    
+    return (
+      <ThemedView style={styles.sectionHeader}>
+        <ThemedText type="subtitle">{title}</ThemedText>
+        <ThemedText style={[styles.sectionCount, { color: themeColors.mutedText }]}>
+          {earnedCount} of {sectionBadges.length} earned
+        </ThemedText>
+      </ThemedView>
+    );
+  };
+
+  const StatsCard = () => {
+    const quizStats = getAllQuizStats();
+    
+    return (
+      <ThemedView style={[styles.statsCard, { backgroundColor: themeColors.cardBackground }]}>
+        <ThemedText type="defaultSemiBold" style={styles.statsTitle}>Quick Stats</ThemedText>
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <ThemedText style={styles.statValue}>{progressStats.checklistProgress}%</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: themeColors.mutedText }]}>Tasks</ThemedText>
+          </View>
+          <View style={styles.statItem}>
+            <ThemedText style={styles.statValue}>{progressStats.quizPerformance}%</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: themeColors.mutedText }]}>Quizzes</ThemedText>
+          </View>
+          <View style={styles.statItem}>
+            <ThemedText style={styles.statValue}>{quizStats.perfectScores}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: themeColors.mutedText }]}>Perfect</ThemedText>
+          </View>
+          <View style={styles.statItem}>
+            <ThemedText style={styles.statValue}>{totalEarned}</ThemedText>
+            <ThemedText style={[styles.statLabel, { color: themeColors.mutedText }]}>Badges</ThemedText>
+          </View>
+        </View>
+      </ThemedView>
+    );
+  };
 
   const AuthOverlay = () => (
     <ThemedView style={[styles.authOverlay, { backgroundColor: themeColors.overlay }]}>
       <ThemedView style={[styles.authCard, { backgroundColor: themeColors.cardBackground }]}>
         <Ionicons name="shield-checkmark" size={60} color="#4ECDC4" />
         <ThemedText style={styles.authTitle}>Sign In Required</ThemedText>
-        <ThemedText style={[styles.authSubtitle, { color: themeColors.mutedText }]} >
+        <ThemedText style={[styles.authSubtitle, { color: themeColors.mutedText }]}>
           Sign in to view your badges and track your progress
         </ThemedText>
         <TouchableOpacity
@@ -307,35 +190,16 @@ export default function BadgesScreen() {
       </ThemedView>
     </ThemedView>
   );
-  const getThemeColors = () => {
-    const isDark = colorScheme === 'dark';
-    return {
-      iconColor: isDark ? '#FFFFFF' : '#333333',
-      selectedOption: isDark ? '#E0E0E0' : '#E0F7FA',
-      cardBackground: isDark ? '#2A2A2A' : '#FFFFFF',
-      borderColor: isDark ? '#444444' : '#E0E0E0',
-      mutedText: isDark ? '#AAAAAA' : '#666666',
-      overlay: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-    };
-  };
-  const themeColors = getThemeColors();
-
-  const getUserDisplayName = () => {
-    if (!user) return 'A';
-    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
-    if (user.email) return user.email.charAt(0).toUpperCase();
-    return 'A';
-  };
 
   const renderHeader = () => (
-    <ThemedView style={styles.header}>
+    <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
       <ThemedText type="title">My Badges</ThemedText>
       <View style={styles.headerRight}>
         <TouchableOpacity
           style={{ marginRight: 15 }}
           onPress={() => {/* Handle notifications */ }}
         >
-          <Ionicons name="notifications-outline" size={24} color="#333" />
+          <Ionicons name="notifications-outline" size={24} color={themeColors.iconColor} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.profileIcon}
@@ -351,22 +215,22 @@ export default function BadgesScreen() {
 
   const renderAchievementsHeader = () => (
     <ThemedView style={styles.achievementsSection}>
-      <ThemedView style={styles.achievementsCard}>
+      <ThemedView style={[styles.achievementsCard, { backgroundColor: themeColors.cardBackground }]}>
         <ThemedText type="subtitle">Your Achievements</ThemedText>
         <ThemedText style={styles.achievementsSubtitle}>
-          Total: {totalEarned} of {badgeData.allBadges.length} Badges Earned
+          Total: {totalEarned} of {totalBadges} Badges Earned
         </ThemedText>
         <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarBackground, { backgroundColor: themeColors.progressBg }]}>
             <View
               style={[
                 styles.progressBarFill,
-                { width: `${(totalEarned / badgeData.allBadges.length) * 100}%` }
+                { width: `${(totalEarned / totalBadges) * 100}%` }
               ]}
             />
           </View>
           <ThemedText type="defaultSemiBold" style={styles.progressText}>
-            {Math.round((totalEarned / badgeData.allBadges.length) * 100)}%
+            {Math.round((totalEarned / totalBadges) * 100)}%
           </ThemedText>
         </View>
       </ThemedView>
@@ -377,52 +241,75 @@ export default function BadgesScreen() {
     <>
       {renderHeader()}
       {renderAchievementsHeader()}
-
-      <SectionHeader
-        title="Core Preparedness Milestones"
-        count={badgeData.corePreparednessMilestones.filter(b => b.earned).length}
-      />
-      <View style={styles.badgeGrid}>
-        {badgeData.corePreparednessMilestones.map(b => <BadgeItem key={b.id} badge={b} />)}
+      
+      {/* Stats Card */}
+      <View style={styles.section}>
+        <StatsCard />
       </View>
 
-      <SectionHeader
-        title="Quiz Achievement Badges"
-        count={badgeData.quizGeneral.filter(b => b.earned).length}
-      />
-      <View style={styles.badgeGrid}>
-        {badgeData.quizGeneral.map(b => <BadgeItem key={b.id} badge={b} />)}
-      </View>
+      {/* Progress Badges */}
+      {badgesByCategory.progress.length > 0 && (
+        <>
+          <SectionHeader title="Progress Milestones" badges={badgesByCategory.progress} />
+          <View style={styles.badgeGrid}>
+            {badgesByCategory.progress.map(badge => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+          </View>
+        </>
+      )}
 
-      <SectionHeader
-        title="Topic Specialist Badges"
-        count={badgeData.quizTopic.filter(b => b.earned).length}
-      />
-      <View style={styles.badgeGrid}>
-        {badgeData.quizTopic.map(b => <BadgeItem key={b.id} badge={b} />)}
-      </View>
+      {/* Quiz Badges */}
+      {badgesByCategory.quiz.length > 0 && (
+        <>
+          <SectionHeader title="Quiz Achievements" badges={badgesByCategory.quiz} />
+          <View style={styles.badgeGrid}>
+            {badgesByCategory.quiz.map(badge => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+          </View>
+        </>
+      )}
 
-      <SectionHeader
-        title="Quiz Mastery Badges"
-        count={badgeData.quizMastery.filter(b => b.earned).length}
-      />
-      <View style={styles.badgeGrid}>
-        {badgeData.quizMastery.map(b => <BadgeItem key={b.id} badge={b} />)}
-      </View>
+      {/* Streak Badges */}
+      {badgesByCategory.streak.length > 0 && (
+        <>
+          <SectionHeader title="Consistency Streaks" badges={badgesByCategory.streak} />
+          <View style={styles.badgeGrid}>
+            {badgesByCategory.streak.map(badge => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+          </View>
+        </>
+      )}
 
-      <SectionHeader
-        title="Community & Outreach"
-        count={badgeData.communityOutreach.filter(b => b.earned).length}
-      />
-      <View style={styles.badgeGrid}>
-        {badgeData.communityOutreach.map(b => <BadgeItem key={b.id} badge={b} />)}
-      </View>
+      {/* Special Badges */}
+      {badgesByCategory.special.length > 0 && (
+        <>
+          <SectionHeader title="Special Achievements" badges={badgesByCategory.special} />
+          <View style={styles.badgeGrid}>
+            {badgesByCategory.special.map(badge => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* Empty state if no badges */}
+      {totalBadges === 0 && (
+        <View style={styles.emptyState}>
+          <Ionicons name="trophy-outline" size={64} color={themeColors.mutedText} />
+          <ThemedText style={[styles.emptyStateText, { color: themeColors.mutedText }]}>
+            Complete tasks and take quizzes to start earning badges!
+          </ThemedText>
+        </View>
+      )}
     </>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
       {/* Main Content with conditional blur/opacity */}
       <View style={[styles.contentContainer, !isAuthenticated && styles.blurredContent]}>
@@ -464,7 +351,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
   },
   headerRight: {
     flexDirection: 'row',
@@ -486,6 +372,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 50,
   },
+  section: {
+    padding: 20,
+  },
   achievementsSection: {
     padding: 20,
     backgroundColor: 'transparent'
@@ -493,6 +382,11 @@ const styles = StyleSheet.create({
   achievementsCard: {
     borderRadius: 15,
     padding: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   achievementsSubtitle: {
     fontSize: 14,
@@ -508,7 +402,6 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     flex: 1,
     height: 8,
-    backgroundColor: '#E0E0E0',
     borderRadius: 4,
     marginRight: 15,
     overflow: 'hidden',
@@ -522,6 +415,37 @@ const styles = StyleSheet.create({
     minWidth: 40,
     fontSize: 14,
   },
+  statsCard: {
+    borderRadius: 15,
+    padding: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  statsTitle: {
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#4ECDC4',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -533,7 +457,6 @@ const styles = StyleSheet.create({
   },
   sectionCount: {
     fontSize: 12,
-    color: '#666',
     fontWeight: '500',
   },
   badgeGrid: {
@@ -548,18 +471,45 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     backgroundColor: 'transparent'
   },
+  badgeWrapper: {
+    position: 'relative',
+    marginBottom: 10,
+  },
   badgeCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
+  },
+  progressRing: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FF9800',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  earnedIndicator: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 2,
   },
   badgeName: {
     textAlign: 'center',
@@ -573,8 +523,27 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     color: '#666'
   },
+  earnedDate: {
+    fontSize: 8,
+    textAlign: 'center',
+    color: '#4CAF50',
+    marginTop: 2,
+    fontWeight: '500',
+  },
   disabledText: {
     opacity: 0.6
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 22,
   },
   authOverlay: {
     position: 'absolute',
@@ -584,11 +553,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 1000,
   },
   authCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 30,
     marginHorizontal: 30,
@@ -606,7 +573,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 8,
     textAlign: 'center',
-},
+  },
   authSubtitle: {
     fontSize: 14,
     textAlign: 'center',

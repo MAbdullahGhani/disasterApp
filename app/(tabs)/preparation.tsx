@@ -1,6 +1,11 @@
+import Sidebar from '@/components/SideBar';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProgress } from '@/contexts/useProgress';
 import { MaterialIcons as Icon, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -9,22 +14,31 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { useProgress } from '@/contexts/useProgress';
-
 export default function TabTwoScreen() {
   const { checklist, overallProgress, toggleChecklistItem } = useProgress();
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
+  const getUserDisplayName = () => {
+    if (!user) return 'A';
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return 'A';
+  };
   const renderHeader = () => (
     <ThemedView style={styles.header}>
       <ThemedText type="title">Preparation Checklist</ThemedText>
       <View style={styles.headerRight}>
-          <Ionicons name="notifications-outline" size={24} color="#333" />
-          <View style={styles.profileIcon}>
-            <ThemedText style={styles.profileText}>A</ThemedText>
-          </View>
-        </View>
+        <Ionicons name="notifications-outline" size={24} color="#333" />
+        <TouchableOpacity
+          style={styles.profileIcon}
+          onPress={() => setSidebarVisible(true)}
+        >
+          <ThemedText style={styles.profileText}>
+            {getUserDisplayName()}
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 
@@ -33,11 +47,11 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.progressCard}>
         <ThemedText type="subtitle" style={styles.progressTitle}>Overall Progress</ThemedText>
         <ThemedText style={styles.progressSubtitle}>
-          {overallProgress > 80 
-            ? "You're nearly disaster ready! Great work!" 
-            : overallProgress > 50 
-            ? "You're on track to becoming disaster ready!" 
-            : "Start building your emergency preparedness!"}
+          {overallProgress > 80
+            ? "You're nearly disaster ready! Great work!"
+            : overallProgress > 50
+              ? "You're on track to becoming disaster ready!"
+              : "Start building your emergency preparedness!"}
         </ThemedText>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
@@ -52,16 +66,16 @@ export default function TabTwoScreen() {
   const renderChecklistSection = (category: 'essentials' | 'evacuation' | 'communication' | 'firstaid') => {
     const items = checklist.filter(item => item.category === category);
     if (items.length === 0) return null;
-    
+
     const categoryTitles = {
       essentials: 'Emergency Essentials',
       evacuation: 'Evacuation & Planning',
       communication: 'Communication Strategy',
       firstaid: 'First Aid Skills'
     };
-    
+
     const categoryTitle = categoryTitles[category];
-    
+
     return (
       <ThemedView style={styles.checklistSection} key={category}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>{categoryTitle}</ThemedText>
@@ -79,10 +93,10 @@ export default function TabTwoScreen() {
               </View>
               <View style={styles.checklistContent}>
                 <ThemedText type="defaultSemiBold"
-                 style={[ 
-                  item.completed ? { color: '#999' } : {},
-                  {textDecorationLine: item.completed ? 'line-through' : 'none'}
-                ]}>
+                  style={[
+                    item.completed ? { color: '#999' } : {},
+                    { textDecorationLine: item.completed ? 'line-through' : 'none' }
+                  ]}>
                   {item.title}
                 </ThemedText>
                 <ThemedText style={styles.checklistDescription}>
@@ -106,7 +120,7 @@ export default function TabTwoScreen() {
   const renderActionButton = () => {
     const completedItems = checklist.filter(item => item.completed).length;
     const totalItems = checklist.length;
-    
+
     return (
       <ThemedView style={styles.actionSection}>
         <TouchableOpacity>
@@ -141,6 +155,11 @@ export default function TabTwoScreen() {
         {renderChecklistSection('firstaid')}
         {renderActionButton()}
       </ScrollView>
+
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+      />
     </SafeAreaView>
   );
 };

@@ -21,8 +21,11 @@ export default function StatsScreen() {
     const {
         checklist,
         overallProgress,
+        progressStats,
         categories,
         quizScores,
+        earnedBadges,
+        badges,
         getProgressForCategory,
         getAllQuizStats,
         topicQuizScores,
@@ -82,6 +85,80 @@ export default function StatsScreen() {
         if (user.displayName) return user.displayName.charAt(0).toUpperCase();
         if (user.email) return user.email.charAt(0).toUpperCase();
         return 'A';
+    };
+
+    // Progress breakdown chart component
+    const ProgressBreakdownChart = () => {
+        const themeColors = getThemeColors();
+        const { checklistProgress, quizPerformance, badgeAchievement } = progressStats;
+        
+        const data = [
+            { label: 'Tasks', value: checklistProgress, color: '#FF6B35' },
+            { label: 'Quizzes', value: quizPerformance, color: '#4ECDC4' },
+            { label: 'Badges', value: badgeAchievement, color: '#FFD700' }
+        ];
+
+        return (
+            <ThemedView style={[styles.progressBreakdown, { backgroundColor: themeColors.cardBackground }]}>
+                <ThemedText type="defaultSemiBold" style={styles.breakdownTitle}>Progress Breakdown</ThemedText>
+                {data.map((item, index) => (
+                    <View key={index} style={styles.progressItem}>
+                        <View style={styles.progressItemHeader}>
+                            <View style={[styles.progressDot, { backgroundColor: item.color }]} />
+                            <ThemedText style={styles.progressLabel}>{item.label}</ThemedText>
+                            <ThemedText style={[styles.progressValue, { color: item.color }]}>{item.value}%</ThemedText>
+                        </View>
+                        <View style={[styles.progressBarContainer, { backgroundColor: themeColors.progressBg }]}>
+                            <View 
+                                style={[
+                                    styles.progressBar, 
+                                    { 
+                                        width: `${item.value}%`, 
+                                        backgroundColor: item.color 
+                                    }
+                                ]} 
+                            />
+                        </View>
+                    </View>
+                ))}
+            </ThemedView>
+        );
+    };
+
+    // Badge showcase component
+    const BadgeShowcase = () => {
+        const themeColors = getThemeColors();
+        const recentBadges = earnedBadges.slice(-3); // Show last 3 earned badges
+        
+        return (
+            <ThemedView style={[styles.badgeShowcase, { backgroundColor: themeColors.cardBackground }]}>
+                <View style={styles.badgeHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.badgeTitle}>Recent Achievements</ThemedText>
+                    <ThemedText style={[styles.badgeCount, { color: themeColors.mutedText }]}>
+                        {earnedBadges.length}/{badges.length}
+                    </ThemedText>
+                </View>
+                <View style={styles.badgeContainer}>
+                    {recentBadges.length > 0 ? (
+                        recentBadges.map(badge => (
+                            <View key={badge.id} style={styles.badgeItem}>
+                                <View style={[styles.badgeIcon, { backgroundColor: `${badge.color}20` }]}>
+                                    <Ionicons name={badge.icon} size={20} color={badge.color} />
+                                </View>
+                                <ThemedText style={styles.badgeName} numberOfLines={2}>{badge.name}</ThemedText>
+                            </View>
+                        ))
+                    ) : (
+                        <View style={styles.noBadges}>
+                            <Ionicons name="trophy-outline" size={32} color={themeColors.mutedText} />
+                            <ThemedText style={[styles.noBadgesText, { color: themeColors.mutedText }]}>
+                                Complete tasks and quizzes to earn badges!
+                            </ThemedText>
+                        </View>
+                    )}
+                </View>
+            </ThemedView>
+        );
     };
 
     const StatCard = ({ icon, title, value, color, subtitle }: any) => {
@@ -229,17 +306,25 @@ export default function StatsScreen() {
                 </ThemedView>
 
                 <ThemedView style={styles.section}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Your Preparedness Score</ThemedText>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>Overall Preparedness Score</ThemedText>
+                    <ThemedText style={[styles.sectionSubtitle, { color: themeColors.mutedText }]}>
+                        Based on tasks completed, quiz performance, and badges earned
+                    </ThemedText>
                     <View style={styles.progressCircle}>
                         <Svg height="120" width="120" viewBox="0 0 120 120">
                             <G rotation="-90" origin="60, 60">
                                 <Circle cx="60" cy="60" r="50" stroke={themeColors.progressBg} strokeWidth="10" fill="transparent" />
                                 <Circle cx="60" cy="60" r="50" stroke="#FF6B35" strokeWidth="10" fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
                             </G>
-                            <SvgText x="60" y="65" textAnchor="middle" fontSize="24" fontWeight="bold" fill={themeColors.svgText}>{overallProgress}%</SvgText>
+                            <SvgText x="45" y="65" textAnchor="middle" fontSize="24" fontWeight="bold" fill={themeColors.svgText}>{overallProgress}%</SvgText>
                         </Svg>
                     </View>
                 </ThemedView>
+
+                {/* Progress Breakdown Section */}
+                <View style={styles.section}>
+                    <ProgressBreakdownChart />
+                </View>
 
                 <View style={styles.statsGrid}>
                     <StatCard
@@ -247,19 +332,21 @@ export default function StatsScreen() {
                         title="Tasks Completed"
                         value={`${completedItems}/${totalItems}`}
                         color="#FF6B35"
+                        subtitle={`${progressStats.checklistProgress}%`}
                     />
                     <StatCard
                         icon="trophy"
                         title="Quiz Average"
-                        value={quizStats.totalQuizzesTaken > 0 ? `${quizStats.averageScore}%` : 'N/A'}
+                        value={quizStats.totalQuizzesTaken > 0 ? `${progressStats.quizPerformance}%` : 'N/A'}
                         color="#FFD700"
                         subtitle={quizStats.totalQuizzesTaken > 0 ? `${quizStats.totalQuizzesTaken} taken` : undefined}
                     />
                     <StatCard
-                        icon="star"
-                        title="Perfect Scores"
-                        value={quizStats.perfectScores}
+                        icon="medal"
+                        title="Badges Earned"
+                        value={`${earnedBadges.length}/${badges.length}`}
                         color="#4ECDC4"
+                        subtitle={`${progressStats.badgeAchievement}%`}
                     />
                     <StatCard
                         icon="shield-checkmark"
@@ -267,6 +354,11 @@ export default function StatsScreen() {
                         value={activePlans}
                         color="#8B5CF6"
                     />
+                </View>
+
+                {/* Badge Showcase Section */}
+                <View style={styles.section}>
+                    <BadgeShowcase />
                 </View>
 
                 <ThemedView style={styles.section}>
@@ -312,9 +404,9 @@ export default function StatsScreen() {
                             </ThemedView>
                             <ThemedView style={[styles.insightCard, { backgroundColor: themeColors.cardBackground }]}>
                                 <ThemedText style={styles.insightValue}>
-                                    {Object.values(quizStats.topicStats).filter(stat => stat.best >= 90).length}
+                                    {quizStats.perfectScores}
                                 </ThemedText>
-                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>Expert Level Topics</ThemedText>
+                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>Perfect Scores</ThemedText>
                             </ThemedView>
                         </View>
                     </ThemedView>
@@ -385,14 +477,126 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     sectionTitle: {
-        marginBottom: 20,
+        marginBottom: 10,
         textAlign: 'center'
+    },
+    sectionSubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 18,
     },
     progressCircle: {
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
         marginBottom: 15
+    },
+    // Progress Breakdown Styles
+    progressBreakdown: {
+        borderRadius: 16,
+        padding: 20,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    breakdownTitle: {
+        fontSize: 16,
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    progressItem: {
+        marginBottom: 15,
+    },
+    progressItemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    progressDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        marginRight: 10,
+    },
+    progressLabel: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    progressValue: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    progressBarContainer: {
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        borderRadius: 3,
+    },
+    // Badge Showcase Styles
+    badgeShowcase: {
+        borderRadius: 16,
+        padding: 20,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    badgeHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    badgeTitle: {
+        fontSize: 16,
+    },
+    badgeCount: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    badgeContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        minHeight: 80,
+    },
+    badgeItem: {
+        alignItems: 'center',
+        flex: 1,
+        maxWidth: 80,
+    },
+    badgeIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    badgeName: {
+        fontSize: 10,
+        textAlign: 'center',
+        lineHeight: 12,
+    },
+    noBadges: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        paddingVertical: 20,
+    },
+    noBadgesText: {
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 16,
     },
     statsGrid: {
         flexDirection: 'row',
