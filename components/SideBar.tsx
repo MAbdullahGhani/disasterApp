@@ -119,21 +119,19 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                             <>
                                 <MenuItemButton icon="log-in-outline" title="Sign In" onPress={() => handleMenuItemPress('AuthScreen')} />
                                 <MenuItemButton icon="person-add-outline" title="Sign Up" onPress={() => handleMenuItemPress('AuthScreen')} />
+                                <MenuItemButton icon="person-add-outline" title="Emergency Contacts" onPress={() => handleMenuItemPress('Emergency')} />
+
                             </>
                         ) : (
                             <>
                                 <MenuItemButton icon="person-outline" title="Profile" onPress={() => handleMenuItemPress('Profile')} />
                                 <MenuItemButton icon="trophy-outline" title="My Badges" onPress={() => handleMenuItemPress('badges')} />
                                 <MenuItemButton icon="checkmark-circle-outline" title="Progress" onPress={() => handleMenuItemPress('progress')} />
-                                <MenuItemButton icon="library-outline" title="Quiz History" onPress={() => handleMenuItemPress('QuizHistory')} />
-
-                                <View style={styles.menuDivider} />
-
+                                <MenuItemButton icon="library-outline" title="Quiz History" onPress={() => handleMenuItemPress('quiz')} />
                                 <MenuItemButton icon="settings-outline" title="Settings" onPress={() => handleMenuItemPress('Settings')} />
                                 <MenuItemButton icon="notifications-outline" title="Notifications" onPress={() => handleMenuItemPress('NotificationSettings')} />
                                 <MenuItemButton icon="help-circle-outline" title="Help & Support" onPress={() => handleMenuItemPress('Help')} />
-
-                                <View style={styles.menuDivider} />
+                                <MenuItemButton icon="person-add-outline" title="Emergency Contacts" onPress={() => handleMenuItemPress('Emergency')} />
 
                                 <MenuItemButton
                                     icon="log-out-outline"
