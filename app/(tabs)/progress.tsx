@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useProgress } from '@/contexts/useProgress';
 import { MaterialIcons as Icon, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -11,20 +11,36 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Sidebar from '@/components/SideBar';
+import { useAuth } from '@/contexts/AuthContext';
+import NotificationDrawer from '@/components/NotificationSidebar';
 
 export default function ProgressScreen() {
   const { categories, overallProgress, checklist } = useProgress();
-
+    const { isAuthenticated, user } = useAuth();
+    const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
+  
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const getUserDisplayName = () => {
+    if (!user) return 'G';
+    if (user.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return 'G';
+  };
   const renderHeader = () => (
     <ThemedView style={styles.header}>
       <ThemedText type="title">Progress Overview</ThemedText>
       <View style={styles.headerRight}>
-        <TouchableOpacity style={{ marginRight: 15 }}>
-          <Ionicons name="notifications-outline" size={24} color="#333" />
-        </TouchableOpacity>
-        <View style={styles.profileIcon}>
-          <ThemedText style={styles.profileText}>A</ThemedText>
-        </View>
+                <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+    
+               <TouchableOpacity
+                 style={styles.profileIcon}
+                 onPress={() => setSidebarVisible(true)}
+               >
+                 <ThemedText style={styles.profileText}>
+                   {getUserDisplayName()}
+                 </ThemedText>
+               </TouchableOpacity>
       </View>
     </ThemedView>
   );
@@ -205,6 +221,12 @@ export default function ProgressScreen() {
         {renderCategoryProgress()}
         {renderActionButton()}
       </ScrollView>
+              <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
+      
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+      />
     </SafeAreaView>
   );
 }

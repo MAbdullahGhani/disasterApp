@@ -1,9 +1,10 @@
+import NotificationDrawer from '@/components/NotificationSidebar';
 import Sidebar from '@/components/SideBar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from 'expo-router/build/useNavigation';
 import React, { useMemo, useState } from 'react';
@@ -25,6 +26,7 @@ export default function BadgesScreen() {
   const { isAuthenticated, user } = useAuth();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const colorScheme = useColorScheme();
+    const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
   
   const {
     badges,
@@ -84,16 +86,25 @@ export default function BadgesScreen() {
     return (
       <ThemedView style={[styles.badgeContainer, { width: (width - 60) / 2 }]}>
         <View style={styles.badgeWrapper}>
-          <LinearGradient
+            <LinearGradient
             colors={getBadgeColors(badge)}
             style={styles.badgeCircle}
-          >
-            <Ionicons
+            >
+            {badge.iconLibrary === 'MaterialIcons' ? (
+              <MaterialIcons
+              // fallback to Ionicons if MaterialIcons is not available
+              name="help-circle-outline"
+              size={32}
+              color={isEarned ? '#FFFFFF' : '#BDBDBD'}
+              />
+            ) : (
+              <Ionicons
               name={badge.icon as any}
               size={32}
               color={isEarned ? '#FFFFFF' : '#BDBDBD'}
-            />
-          </LinearGradient>
+              />
+            )}
+            </LinearGradient>
           
           {/* Progress indicator for unearned badges */}
           {!isEarned && progress < 100 && (
@@ -195,12 +206,8 @@ export default function BadgesScreen() {
     <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
       <ThemedText type="title">My Badges</ThemedText>
       <View style={styles.headerRight}>
-        <TouchableOpacity
-          style={{ marginRight: 15 }}
-          onPress={() => {/* Handle notifications */ }}
-        >
-          <Ionicons name="notifications-outline" size={24} color={themeColors.iconColor} />
-        </TouchableOpacity>
+            <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+
         <TouchableOpacity
           style={styles.profileIcon}
           onPress={() => setSidebarVisible(true)}
@@ -326,6 +333,8 @@ export default function BadgesScreen() {
       {!isAuthenticated && <AuthOverlay />}
 
       {/* Sidebar Menu */}
+              <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
+      
       <Sidebar
         visible={sidebarVisible}
         onClose={() => setSidebarVisible(false)}

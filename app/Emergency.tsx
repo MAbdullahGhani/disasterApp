@@ -1,7 +1,9 @@
+import { CustomCallAlert } from '@/components/CustomCallAlert';
 import { ThemedInput } from '@/components/ThemedInput';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { MaterialIcons as Icon, Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -270,11 +272,25 @@ interface EmergencyContact {
       available24x7: false,
     },
   ];
-  
+  type SelectedContact = EmergencyContact | null;
 export default function EmergencyContactsScreen() {
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+   const [isAlertVisible, setAlertVisible] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<SelectedContact>(null);
+
+  // 3. Update the handleCall function
+  const handleCall = (contact: EmergencyContact) => {
+    setSelectedContact(contact); // Store the contact info
+    setAlertVisible(true);      // Show the modal
+  };
   
+  const handleCloseAlert = () => {
+    setAlertVisible(false);
+    setSelectedContact(null);
+  };
+
   const filteredContacts = emergencyContacts.filter(contact => {
     const searchMatch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -283,20 +299,20 @@ export default function EmergencyContactsScreen() {
     return searchMatch && categoryMatch;
   });
 
-  const handleCall = (contact) => {
-    Alert.alert(
-      `Call ${contact.name}?`,
-      `${contact.description}\n\nNumber: ${contact.number}${contact.available24x7 ? '\n🕐 Available 24/7' : ''}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Call Now',
-          onPress: () => Linking.openURL(`tel:${contact.number}`)
-            .catch(() => Alert.alert('Error', 'Cannot make a phone call.'))
-        }
-      ]
-    );
-  };
+  // const handleCall = (contact) => {
+  //   Alert.alert(
+  //     `Call ${contact.name}?`,
+  //     `${contact.description}\n\nNumber: ${contact.number}${contact.available24x7 ? '\n🕐 Available 24/7' : ''}`,
+  //     [
+  //       { text: 'Cancel', style: 'cancel' },
+  //       {
+  //         text: 'Call Now',
+  //         onPress: () => Linking.openURL(`tel:${contact.number}`)
+  //           .catch(() => Alert.alert('Error', 'Cannot make a phone call.'))
+  //       }
+  //     ]
+  //   );
+  // };
 
   const categories = [
     { key: 'all', label: 'All', icon: 'apps', color: '#666' },
@@ -313,6 +329,12 @@ export default function EmergencyContactsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
+        <ThemedView style={{ position: 'absolute', left: 16, top: 16, zIndex: 10 }}>
+          <TouchableOpacity onPress={() => { if (typeof navigation !== 'undefined' && navigation.goBack) { navigation.goBack(); } }}>
+            <Ionicons name="arrow-back" size={24} color="#aaa" />
+          </TouchableOpacity>
+        </ThemedView>
+
         <ThemedView style={styles.header}>
           <Icon name="phone-in-talk" size={24} color="#FF4444" />
           <ThemedText type="title" style={styles.title}>Emergency Contacts</ThemedText>
@@ -388,12 +410,34 @@ export default function EmergencyContactsScreen() {
           )}
         </ThemedView>
       </ScrollView>
+
+       {selectedContact && (
+        <CustomCallAlert
+          isVisible={isAlertVisible}
+          onClose={handleCloseAlert}
+          title={`Call ${selectedContact.name}?`}
+          message={`${selectedContact.description}\nNumber: ${selectedContact.number}`}
+          buttons={[
+            {
+              text: 'Cancel',
+              onPress: () => {}, // No action needed, modal closes automatically
+              style: 'cancel',
+            },
+            {
+              text: 'Call Now',
+              onPress: () => Linking.openURL(`tel:${selectedContact.number}`)
+                .catch(() => {
+                  // If linking fails, you can show another alert or message
+                  // For simplicity, we'll just log it for now
+                  console.error("Failed to open phone dialer.");
+                }),
+            },
+          ]}
+        />
+      )}
     </SafeAreaView>
   );
 }
-
-// Basic styles optimized for clarity and accessibility
-// Replace the `styles` section with this version
 
 const styles = StyleSheet.create({
     container: { flex: 1 },

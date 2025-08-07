@@ -117,25 +117,22 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                     <ThemedView style={styles.menuContent}>
                         {!isAuthenticated ? (
                             <>
-                                <MenuItemButton icon="log-in-outline" title="Sign In" onPress={() => handleMenuItemPress('AuthScreen')} />
-                                <MenuItemButton icon="person-add-outline" title="Sign Up" onPress={() => handleMenuItemPress('AuthScreen')} />
-                                <MenuItemButton icon="person-add-outline" title="Emergency Contacts" onPress={() => handleMenuItemPress('Emergency')} />
+                                <MenuItemButton icon="log-in-outline" title={<ThemedText>Sign In</ThemedText>} onPress={() => handleMenuItemPress('AuthScreen')} />
+                                <MenuItemButton icon="person-add-outline" title={<ThemedText>Sign Up</ThemedText>} onPress={() => handleMenuItemPress('AuthScreen')} />
+                                <MenuItemButton icon="person-add-outline" title={<ThemedText>Emergency Contacts</ThemedText>} onPress={() => handleMenuItemPress('Emergency')} />
 
                             </>
                         ) : (
                             <>
-                                <MenuItemButton icon="person-outline" title="Profile" onPress={() => handleMenuItemPress('Profile')} />
-                                <MenuItemButton icon="trophy-outline" title="My Badges" onPress={() => handleMenuItemPress('badges')} />
-                                <MenuItemButton icon="checkmark-circle-outline" title="Progress" onPress={() => handleMenuItemPress('progress')} />
-                                <MenuItemButton icon="library-outline" title="Quiz History" onPress={() => handleMenuItemPress('quiz')} />
-                                <MenuItemButton icon="settings-outline" title="Settings" onPress={() => handleMenuItemPress('Settings')} />
-                                <MenuItemButton icon="notifications-outline" title="Notifications" onPress={() => handleMenuItemPress('NotificationSettings')} />
-                                <MenuItemButton icon="help-circle-outline" title="Help & Support" onPress={() => handleMenuItemPress('Help')} />
-                                <MenuItemButton icon="person-add-outline" title="Emergency Contacts" onPress={() => handleMenuItemPress('Emergency')} />
+                                <MenuItemButton icon="person-outline" title={<ThemedText>Profile</ThemedText>} onPress={() => handleMenuItemPress('Profile')} />
+                                <MenuItemButton icon="settings-outline" title={<ThemedText>Settings</ThemedText>} onPress={() => handleMenuItemPress('Settings')} />
+                                <MenuItemButton icon="notifications-outline" title={<ThemedText>Notifications</ThemedText>} onPress={() => handleMenuItemPress('NotificationSettings')} />
+                                <MenuItemButton icon="help-circle-outline" title={<ThemedText>Help & Support</ThemedText>} onPress={() => handleMenuItemPress('Help')} />
+                                <MenuItemButton icon="person-add-outline" title={<ThemedText>Emergency Contacts</ThemedText>} onPress={() => handleMenuItemPress('Emergency')} />
 
                                 <MenuItemButton
                                     icon="log-out-outline"
-                                    title="Sign Out"
+                                    title={<ThemedText>Sign Out</ThemedText>}
                                     onPress={handleLogout}
                                     iconColor="#FF6B6B"
                                 />
@@ -143,9 +140,9 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                         )}
                     </ThemedView>
 
-                    <View style={styles.footer}>
-                        <ThemedText style={styles.footerText}>Safety First App v1.0</ThemedText>
-                    </View>
+                    <ThemedView style={styles.footer}>
+                        <ThemedText style={styles.footerText}>© Pakistan Disaster Ready v1.0</ThemedText>
+                    </ThemedView>
                 </Animated.View>
             </View>
         </Modal>
@@ -248,6 +245,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#F0F0F0',
         alignItems: 'center',
+        paddingBottom: 40,
     },
     footerText: {
         fontSize: 12,

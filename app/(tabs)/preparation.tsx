@@ -1,3 +1,4 @@
+import NotificationDrawer from '@/components/NotificationSidebar';
 import Sidebar from '@/components/SideBar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -18,6 +19,7 @@ export default function TabTwoScreen() {
   const { checklist, overallProgress, toggleChecklistItem } = useProgress();
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const { isAuthenticated, user } = useAuth();
+  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
   const getUserDisplayName = () => {
     if (!user) return 'A';
@@ -29,7 +31,7 @@ export default function TabTwoScreen() {
     <ThemedView style={styles.header}>
       <ThemedText type="title">Preparation Checklist</ThemedText>
       <View style={styles.headerRight}>
-        <Ionicons name="notifications-outline" size={24} color="#333" />
+            <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
         <TouchableOpacity
           style={styles.profileIcon}
           onPress={() => setSidebarVisible(true)}
@@ -155,6 +157,7 @@ export default function TabTwoScreen() {
         {renderChecklistSection('firstaid')}
         {renderActionButton()}
       </ScrollView>
+        <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
 
       <Sidebar
         visible={sidebarVisible}

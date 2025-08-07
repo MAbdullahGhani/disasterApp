@@ -11,14 +11,23 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
-  updateProfile
+  updateProfile as updateFirebaseAuthProfile,
 } from 'firebase/auth';
 import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '../firebase/config';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 
 WebBrowser.maybeCompleteAuthSession();
 
 // --- Types ---
+interface ProfileData {
+    displayName?: string;
+    phone?: string;
+    location?: string;
+    emergencyContact?: string;
+    email?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -29,6 +38,8 @@ interface AuthContextType {
   signInAnonymouslyUser: () => Promise<any>;
   logout: () => Promise<any>;
   isAuthenticated: boolean;
+  fetchUserProfile: () => Promise<ProfileData | null>;
+  updateUserProfile: (profileData: ProfileData) => Promise<{ success: boolean; error?: string }>;
 }
 
 interface AuthProviderProps {
@@ -47,17 +58,15 @@ export const useAuth = (): AuthContextType => {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [initializing, setInitializing] = useState<boolean>(true);
 
   const [request, response, promptAsync] = useAuthRequest({
-    // Use the WEB CLIENT ID - this is crucial for proxy mode
     clientId: '139120385098-bamg6hpod29t48v7a5efe0hd3ub7d9jh.apps.googleusercontent.com',
     iosClientId: '139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com',
     androidClientId: '139120385098-pem3i8hcsa2valicnjbj0k3ambe6fop2.apps.googleusercontent.com',
     responseType: ResponseType.IdToken,
     scopes: ['openid', 'profile', 'email'],
-    // Let Expo handle the redirect URI automatically
   });
 
   // Log the redirect URI that Expo generates
@@ -102,20 +111,85 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const fetchUserProfile = async (): Promise<ProfileData | null> => {
+    try {
+      if (!auth.currentUser) {
+        console.log('No current user');
+        return null;
+      }
+      
+      console.log('Fetching profile for user:', auth.currentUser.uid);
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const docSnap = await getDoc(userDocRef);
+      
+      if (docSnap.exists()) {
+        console.log('Profile data found:', docSnap.data());
+        return docSnap.data() as ProfileData;
+      } else {
+        console.log('No profile document found');
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      console.error('Error code:', error?.code);
+      console.error('Error message:', error?.message);
+      return null;
+    }
+  };
+
+  const updateUserProfile = async (profileData: ProfileData): Promise<{ success: boolean; error?: string }> => {
+    if (!auth.currentUser) {
+      return { success: false, error: 'No user logged in' };
+    }
+    
+    try {
+      setLoading(true);
+      
+      console.log('Updating profile for user:', auth.currentUser.uid);
+      console.log('Profile data:', profileData);
+      
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+
+      // Update the user's display name in Firebase Auth if it has changed
+      if (profileData.displayName && profileData.displayName !== auth.currentUser.displayName) {
+        console.log('Updating Firebase Auth display name...');
+        await updateFirebaseAuthProfile(auth.currentUser, { displayName: profileData.displayName });
+      }
+
+      // Update or create the document in Firestore with custom data
+      console.log('Updating Firestore document...');
+      await setDoc(userDocRef, {
+        ...profileData,
+        email: auth.currentUser.email,
+        uid: auth.currentUser.uid, // Add UID for security rules
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(), // Will only be set if document doesn't exist
+      }, { merge: true });
+
+      console.log('Profile updated successfully');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Update Profile Error:', error);
+      console.error('Error code:', error?.code);
+      console.error('Error message:', error?.message);
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
       
-      // Check if request is ready
       if (!request) {
         return { success: false, error: 'Google Auth request not ready' };
       }
 
-      // Set browser settings for better compatibility
       WebBrowser.maybeCompleteAuthSession();
 
       const result = await promptAsync({
-        useProxy: true, // This forces the use of expo.dev proxy
+        useProxy: true,
       });
       
       console.log('Full auth result:', result);
@@ -180,7 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
       if (displayName && result.user) {
-        await updateProfile(result.user, { displayName });
+        await updateFirebaseAuthProfile(result.user, { displayName });
       }
       return { success: true, user: result.user };
     } catch (error: any) {
@@ -224,6 +298,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInAnonymouslyUser,
     logout,
     isAuthenticated: !!user,
+    fetchUserProfile,
+    updateUserProfile,
   };
 
   return (

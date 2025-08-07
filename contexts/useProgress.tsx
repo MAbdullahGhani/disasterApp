@@ -34,6 +34,7 @@ interface Badge {
   description: string;
   icon: string;
   color: string;
+  iconLibrary: 'MaterialIcons' | 'Ionicons'; // Specify the icon library
   category: 'progress' | 'quiz' | 'streak' | 'special';
   earned: boolean;
   earnedAt?: Date | null;
@@ -135,6 +136,7 @@ const defaultBadges: Badge[] = [
     description: 'Complete your first checklist item',
     icon: 'footsteps',
     color: '#4CAF50',
+    iconLibrary: 'Ionicons',
     category: 'progress',
     earned: false,
     requirements: { type: 'checklist', value: 1 }
@@ -142,6 +144,7 @@ const defaultBadges: Badge[] = [
   {
     id: 'quarter-way',
     name: 'Quarter Champion',
+    iconLibrary: 'Ionicons',
     description: 'Complete 25% of all checklist items',
     icon: 'trophy',
     color: '#FF9800',
@@ -152,6 +155,7 @@ const defaultBadges: Badge[] = [
   {
     id: 'halfway-hero',
     name: 'Halfway Hero',
+    iconLibrary: 'Ionicons',
     description: 'Complete 50% of all checklist items',
     icon: 'star',
     color: '#2196F3',
@@ -164,6 +168,7 @@ const defaultBadges: Badge[] = [
     name: 'Preparedness Pro',
     description: 'Complete 75% of all checklist items',
     icon: 'shield-checkmark',
+    iconLibrary: 'Ionicons',
     color: '#9C27B0',
     category: 'progress',
     earned: false,
@@ -172,6 +177,7 @@ const defaultBadges: Badge[] = [
   {
     id: 'fully-prepared',
     name: 'Fully Prepared',
+    iconLibrary: 'Ionicons',
     description: 'Complete all checklist items',
     icon: 'checkmark-circle',
     color: '#FF6B35',
@@ -186,6 +192,7 @@ const defaultBadges: Badge[] = [
     name: 'Quiz Novice',
     description: 'Take your first quiz',
     icon: 'school',
+    iconLibrary: 'Ionicons',
     color: '#4CAF50',
     category: 'quiz',
     earned: false,
@@ -199,6 +206,7 @@ const defaultBadges: Badge[] = [
     color: '#FFD700',
     category: 'quiz',
     earned: false,
+    iconLibrary: 'Ionicons',
     requirements: { type: 'perfect_scores', value: 1 }
   },
   {
@@ -207,6 +215,7 @@ const defaultBadges: Badge[] = [
     description: 'Take 10 quizzes',
     icon: 'library',
     color: '#9C27B0',
+    iconLibrary: 'Ionicons',
     category: 'quiz',
     earned: false,
     requirements: { type: 'quiz_count', value: 10 }
@@ -217,6 +226,8 @@ const defaultBadges: Badge[] = [
     description: 'Get 5 perfect scores',
     icon: 'medal',
     color: '#FF6B35',
+    iconLibrary: 'Ionicons',
+
     category: 'quiz',
     earned: false,
     requirements: { type: 'perfect_scores', value: 5 }
@@ -229,6 +240,7 @@ const defaultBadges: Badge[] = [
     description: 'Complete all Essential Supplies tasks',
     icon: 'inventory',
     color: '#FF9800',
+    iconLibrary: 'MaterialIcons',
     category: 'progress',
     earned: false,
     requirements: { type: 'category_complete', value: 100, category: 'essentials' }
@@ -239,6 +251,8 @@ const defaultBadges: Badge[] = [
     description: 'Complete all Evacuation Plan tasks',
     icon: 'directions-run',
     color: '#4CAF50',
+        iconLibrary: 'MaterialIcons',
+
     category: 'progress',
     earned: false,
     requirements: { type: 'category_complete', value: 100, category: 'evacuation' }
@@ -249,6 +263,8 @@ const defaultBadges: Badge[] = [
     description: 'Complete all Communication tasks',
     icon: 'forum',
     color: '#00BCD4',
+        iconLibrary: 'MaterialIcons',
+
     category: 'progress',
     earned: false,
     requirements: { type: 'category_complete', value: 100, category: 'communication' }
@@ -258,6 +274,8 @@ const defaultBadges: Badge[] = [
     name: 'First Aid Expert',
     description: 'Complete all First Aid tasks',
     icon: 'local-hospital',
+        iconLibrary: 'MaterialIcons',
+
     color: '#F44336',
     category: 'progress',
     earned: false,

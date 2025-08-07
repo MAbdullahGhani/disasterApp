@@ -1,3 +1,4 @@
+import NotificationDrawer from '@/components/NotificationSidebar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,11 +41,14 @@ export default function QuizScreen() {
     score: 0, 
     showResult: false 
   });
+    const [sidebarVisible, setSidebarVisible] = useState(false);
+  
   const [resultSubmitted, setResultSubmitted] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [showTopicSelection, setShowTopicSelection] = useState(true);
   const navigation = useNavigation();
   const { isAuthenticated, user } = useAuth();
+  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
   const [quizTopics] = useState<QuizTopic[]>([
     {
@@ -604,12 +608,12 @@ export default function QuizScreen() {
       <SafeAreaView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 50}}>
           <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
-            <ThemedText type="title">Safety Quizzes</ThemedText>
+            <ThemedText type="title">Safety Quizes</ThemedText>
             <View style={styles.headerRight}>
-              <Ionicons name="notifications-outline" size={24} color={themeColors.iconColor} />
-              <View style={styles.profileIcon}>
-                <ThemedText style={styles.profileText}>{getUserDisplayName()}</ThemedText>
-              </View>
+            <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+                   <TouchableOpacity style={styles.profileIcon} onPress={() => setSidebarVisible(true)}>
+                         <ThemedText style={styles.profileText}>{getUserDisplayName()}</ThemedText>
+                       </TouchableOpacity>
             </View>
           </ThemedView>
           
@@ -648,6 +652,12 @@ export default function QuizScreen() {
             </View>
           )}
         </ScrollView>
+                <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
+               
+                    <Sidebar
+                        visible={sidebarVisible}
+                        onClose={() => setSidebarVisible(false)}
+                    />
       </SafeAreaView>
     );
   }

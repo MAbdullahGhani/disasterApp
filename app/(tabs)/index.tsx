@@ -1,3 +1,5 @@
+
+import NotificationDrawer from '@/components/NotificationSidebar';
 import Sidebar from '@/components/SideBar';
 import { ThemedInput } from '@/components/ThemedInput';
 import { ThemedText } from '@/components/ThemedText';
@@ -83,6 +85,7 @@ export default function HomeScreen() {
   const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
   const [disasterResources, setDisasterResources] = useState<DisasterResource[]>([]);
   const { user } = useAuth();
 
@@ -102,6 +105,7 @@ export default function HomeScreen() {
       setLoadingSuggestions(false);
     }
   }, [searchQuery]);
+  
 
   // --- Data Fetching ---
   const loadInitialData = async () => {
@@ -124,24 +128,47 @@ export default function HomeScreen() {
     ];
     setDisasterResources(resources);
   };
-
-  const requestLocationAndFetchWeather = async () => {
+  
+ const requestLocationAndFetchWeather = async () => {
     setLoadingWeather(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        console.log('Location permission denied. Using default location.');
         await fetchWeatherData(ISLAMABAD_COORDS.lat, ISLAMABAD_COORDS.lon, "Islamabad");
         return;
       }
-      const faisalabadCoords = { latitude: 31.4187, longitude: 73.0791 };
-      await fetchWeatherData(faisalabadCoords.latitude, faisalabadCoords.longitude, "Faisalabad");
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const cityName = await getCityName(location.coords.latitude, location.coords.longitude);
+      await fetchWeatherData(location.coords.latitude, location.coords.longitude, cityName);
     } catch (error) {
-      console.error("Error getting location:", error);
+      console.error("Error getting location or city name:", error);
       await fetchWeatherData(ISLAMABAD_COORDS.lat, ISLAMABAD_COORDS.lon, "Islamabad");
-    } finally {
-      setLoadingWeather(false);
     }
   };
+
+  const getCityName = async (lat: number, lon: number): Promise<string> => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, {
+        headers: {
+          'Accept-Language': 'en', 
+          'User-Agent': 'DisasterReadyApp/1.0'
+        }
+      });
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !contentType || !contentType.includes("application/json")) {
+        const textResponse = await response.text();
+        console.error("Nominatim API returned a non-JSON response:", textResponse);
+        throw new Error('Nominatim API error: Non-JSON response');
+      }
+      const data = await response.json();
+      return data.address.city || data.address.town || data.address.village || 'Current Location';
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      return "Current Location";
+    }
+  };
+
 
   const fetchWeatherData = async (lat: number, lon: number, city: string) => {
     // This function remains the same, using Open-Meteo for weather forecasts
@@ -234,41 +261,21 @@ export default function HomeScreen() {
 
   // --- API FIX: FINAL IMPLEMENTATION ---
   // Using Open-Meteo's geocoding API. It's fast, requires NO API key, and works globally.
-  const fetchCitySuggestions = async (query: string) => {
-    setLoadingSuggestions(true);
+ const fetchCitySuggestions = async (query: string) => {
+      setLoadingSuggestions(true);
     try {
-      const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=10&language=en&format=json`
-      );
-      console.log('Res', res)
-      if (!res.ok) throw new Error('City suggestion API error');
-      
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5&language=en&format=json`);
       const data = await res.json();
-      
-      // The 'results' field may not exist if there are no matches
-      if (!data.results) {
-        setCitySuggestions([]);
-        return;
+      if (data.results) {
+        setCitySuggestions(data.results);
       }
-      
-      // The data structure is clean and maps directly to our interface
-      const suggestions: CitySuggestion[] = data.results.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        latitude: item.latitude,
-        longitude: item.longitude,
-        country: item.country,
-        admin1: item.admin1, // 'admin1' is the state/province
-      }));
-
-      setCitySuggestions(suggestions);
+      setLoadingSuggestions(false);
     } catch (error) {
       console.error("City suggestion error:", error);
-      setCitySuggestions([]);
-    } finally {
       setLoadingSuggestions(false);
     }
   };
+
 
 
   // --- Helper Functions ---
@@ -315,10 +322,10 @@ export default function HomeScreen() {
   };
 
   const getUserDisplayName = () => {
-    if (!user) return 'A';
+    if (!user) return 'G';
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return 'A';
+    return 'G';
   };
 
   // --- Event Handlers ---
@@ -350,7 +357,7 @@ export default function HomeScreen() {
           <ThemedText type="title">Disaster Ready</ThemedText>
           <ThemedView style={styles.headerRight}>
             <TouchableOpacity onPress={() => setIsSearchVisible(true)}><Ionicons name="search-outline" size={24} color="#333" /></TouchableOpacity>
-            <TouchableOpacity style={{ marginLeft: 15 }}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+            <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
             <TouchableOpacity style={styles.profileIcon} onPress={() => setSidebarVisible(true)}>
               <ThemedText style={styles.profileText}>{getUserDisplayName()}</ThemedText>
             </TouchableOpacity>
@@ -388,7 +395,7 @@ export default function HomeScreen() {
 
   const renderPakistaniResources = () => (
     <ThemedView style={styles.section}>
-      <ThemedText type="subtitle" style={styles.sectionTitle}>Pakistani Resources</ThemedText>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>Local Resources</ThemedText>
       <ThemedView style={styles.resourcesGrid}>
         {disasterResources.map((resource) => (
           <TouchableOpacity key={resource.id} onPress={() => handleResourcePress(resource)}>
@@ -507,11 +514,12 @@ export default function HomeScreen() {
         {renderHeader()}
         {renderCitySuggestions()}
         <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} />
+        <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
         {!isSearchVisible && (
           <>
             {renderWeatherSection()}
-            {renderPakistaniResources()}
             {renderAlertsSection()}
+            {renderPakistaniResources()}
           </>
         )}
       </ScrollView>
@@ -528,9 +536,9 @@ const styles = StyleSheet.create({
   profileText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', flex: 1, backgroundColor: 'transparent' },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 16, height: 40, color: '#333' },
+  searchInput: { flex: 1, fontSize: 16, height: 40 },
   suggestionsContainer: { elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, maxHeight: 250 },
-  suggestionsList: { maxHeight: 200 },
+  suggestionsList: { maxHeight: 230 },
   loadingContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, backgroundColor: 'transparent' },
   loadingText: { marginLeft: 10, fontSize: 14, color: '#666' },
   noResultsContainer: { alignItems: 'center', paddingVertical: 20, backgroundColor: 'transparent' },

@@ -1,3 +1,4 @@
+import NotificationDrawer from '@/components/NotificationSidebar';
 import Sidebar from '@/components/SideBar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -17,6 +18,7 @@ export default function StatsScreen() {
     const colorScheme = useColorScheme();
     const { isAuthenticated, user } = useAuth();
     const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
     const {
         checklist,
@@ -288,12 +290,8 @@ export default function StatsScreen() {
                 <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
                     <ThemedText type="title">Stats Dashboard</ThemedText>
                     <View style={styles.headerRight}>
-                        <TouchableOpacity
-                            style={{ marginRight: 15 }}
-                            onPress={() => {/* Handle notifications */ }}
-                        >
-                            <Ionicons name="notifications-outline" size={24} color={themeColors.iconColor} />
-                        </TouchableOpacity>
+                     <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+         
                         <TouchableOpacity
                             style={styles.profileIcon}
                             onPress={() => setSidebarVisible(true)}
@@ -434,6 +432,8 @@ export default function StatsScreen() {
             {!isAuthenticated && <AuthOverlay />}
 
             {/* Sidebar Menu */}
+                    <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
+            
             <Sidebar
                 visible={sidebarVisible}
                 onClose={() => setSidebarVisible(false)}

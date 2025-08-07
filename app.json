@@ -29,8 +29,7 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Pdr_logo.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/Pdr_logo.png"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.disasterApp"
@@ -62,10 +61,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/Pdr_logo.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "resizeMode": "contain"
         }
       ],
       [
