@@ -1,46 +1,46 @@
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { useProgress } from '@/contexts/useProgress';
-import { MaterialIcons as Icon, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Sidebar from '@/components/SideBar';
-import { useAuth } from '@/contexts/AuthContext';
-import NotificationDrawer from '@/components/NotificationSidebar';
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useProgress } from "@/contexts/useProgress";
+import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Sidebar from "@/components/SideBar";
+import { useAuth } from "@/contexts/AuthContext";
+import NotificationDrawer from "@/components/NotificationSidebar";
 
 export default function ProgressScreen() {
   const { categories, overallProgress, checklist } = useProgress();
-    const { isAuthenticated, user } = useAuth();
-    const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
-  
+  const { isAuthenticated, user } = useAuth();
+  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
+
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const getUserDisplayName = () => {
-    if (!user) return 'G';
+    if (!user) return "G";
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return 'G';
+    return "G";
   };
   const renderHeader = () => (
     <ThemedView style={styles.header}>
       <ThemedText type="title">Progress Overview</ThemedText>
       <View style={styles.headerRight}>
-                <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
-    
-               <TouchableOpacity
-                 style={styles.profileIcon}
-                 onPress={() => setSidebarVisible(true)}
-               >
-                 <ThemedText style={styles.profileText}>
-                   {getUserDisplayName()}
-                 </ThemedText>
-               </TouchableOpacity>
+        <TouchableOpacity
+          style={{ marginLeft: 15 }}
+          onPress={() => setNotiSidebarVisible(true)}
+        >
+          <Ionicons name="notifications-outline" size={24} color="#333" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.profileIcon}
+          onPress={() => setSidebarVisible(true)}
+        >
+          <ThemedText style={styles.profileText}>
+            {getUserDisplayName()}
+          </ThemedText>
+        </TouchableOpacity>
       </View>
     </ThemedView>
   );
@@ -67,10 +67,10 @@ export default function ProgressScreen() {
                   width: `${overallProgress}%`,
                   backgroundColor:
                     overallProgress > 75
-                      ? '#4CAF50'
+                      ? "#4CAF50"
                       : overallProgress > 50
-                      ? '#FF9800'
-                      : '#FF5722',
+                      ? "#FF9800"
+                      : "#FF5722",
                 },
               ]}
             />
@@ -82,10 +82,10 @@ export default function ProgressScreen() {
               {
                 color:
                   overallProgress > 75
-                    ? '#4CAF50'
+                    ? "#4CAF50"
                     : overallProgress > 50
-                    ? '#FF9800'
-                    : '#FF5722',
+                    ? "#FF9800"
+                    : "#FF5722",
               },
             ]}
           >
@@ -101,19 +101,19 @@ export default function ProgressScreen() {
       <ThemedText type="subtitle" style={styles.sectionTitle}>
         Category Progress
       </ThemedText>
-      {categories.map(category => {
+      {categories.map((category) => {
         const categoryItems = checklist.filter(
-          item => item.category === category.categoryKey
+          (item) => item.category === category.categoryKey
         );
         const completedCategoryItems = categoryItems.filter(
-          item => item.completed
+          (item) => item.completed
         ).length;
         const categoryColor =
           category.percentage > 75
-            ? '#4CAF50'
+            ? "#4CAF50"
             : category.percentage > 50
-            ? '#FF9800'
-            : '#FF5722';
+            ? "#FF9800"
+            : "#FF5722";
 
         return (
           <TouchableOpacity key={category.id}>
@@ -127,7 +127,10 @@ export default function ProgressScreen() {
                   />
                 </View>
                 <View style={styles.categoryInfo}>
-                  <ThemedText type="defaultSemiBold" style={styles.categoryName}>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={styles.categoryName}
+                  >
                     {category.name}
                   </ThemedText>
                   <ThemedText style={styles.categoryDescription}>
@@ -164,34 +167,34 @@ export default function ProgressScreen() {
 
   const renderActionButton = () => {
     const firstAidProgress =
-      categories.find(cat => cat.categoryKey === 'firstaid')?.percentage || 0;
+      categories.find((cat) => cat.categoryKey === "firstaid")?.percentage || 0;
     const isComplete = overallProgress === 100;
 
     const buttonText = isComplete
-      ? 'You are Fully Prepared!'
+      ? "You are Fully Prepared!"
       : firstAidProgress > 75
-      ? 'Take Advanced First Aid Quiz'
+      ? "Take Advanced First Aid Quiz"
       : firstAidProgress > 25
-      ? 'Continue First Aid Learning'
-      : 'Start First Aid Basics';
+      ? "Continue First Aid Learning"
+      : "Start First Aid Basics";
 
     const buttonSubtitle = isComplete
-      ? 'Congratulations on achieving 100% readiness! 🎉'
-      : 'Take the next step to improve your score.';
+      ? "Congratulations on achieving 100% readiness! 🎉"
+      : "Take the next step to improve your score.";
 
     return (
       <ThemedView style={styles.actionSection}>
         <TouchableOpacity>
           <LinearGradient
             colors={
-              isComplete ? ['#4CAF50', '#66BB6A'] : ['#00BCD4', '#0097A7']
+              isComplete ? ["#4CAF50", "#66BB6A"] : ["#00BCD4", "#0097A7"]
             }
             style={styles.actionButton}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
             <Icon
-              name={isComplete ? 'celebration' : 'quiz'}
+              name={isComplete ? "celebration" : "quiz"}
               size={24}
               color="#FFFFFF"
             />
@@ -211,18 +214,20 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        >
+      >
         {renderHeader()}
         {renderOverallProgress()}
         {renderCategoryProgress()}
         {renderActionButton()}
       </ScrollView>
-              <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
-      
+      <NotificationDrawer
+        visible={notiSidebarVisible}
+        onClose={() => setNotiSidebarVisible(false)}
+      />
+
       <Sidebar
         visible={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
@@ -236,29 +241,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   profileIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#4ECDC4',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#4ECDC4",
+    justifyContent: "center",
+    marginLeft: 15,
+    alignItems: "center",
   },
   profileText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
     fontSize: 16,
   },
   scrollContent: {
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   sectionTitle: {
     marginBottom: 15,
@@ -289,16 +294,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
-    color: '#666',
+    color: "#666",
   },
   progressBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   progressBarBackground: {
     flex: 1,
     height: 8,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 4,
     marginRight: 15,
   },
@@ -311,13 +316,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 15,
   },
   categoryIcon: {
     width: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   categoryInfo: {
     flex: 1,
@@ -329,20 +334,20 @@ const styles = StyleSheet.create({
   },
   categoryDescription: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     lineHeight: 16,
   },
   actionSection: {
     padding: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   actionButton: {
     borderRadius: 15,
     padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -353,13 +358,13 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginBottom: 2,
   },
   actionButtonSubtitle: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.9,
     lineHeight: 16,
   },

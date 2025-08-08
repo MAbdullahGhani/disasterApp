@@ -1,19 +1,14 @@
-import NotificationDrawer from '@/components/NotificationSidebar';
-import Sidebar from '@/components/SideBar';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProgress } from '@/contexts/useProgress';
-import { MaterialIcons as Icon, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import NotificationDrawer from "@/components/NotificationSidebar";
+import Sidebar from "@/components/SideBar";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProgress } from "@/contexts/useProgress";
+import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabTwoScreen() {
   const { checklist, overallProgress, toggleChecklistItem } = useProgress();
@@ -22,16 +17,21 @@ export default function TabTwoScreen() {
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
   const getUserDisplayName = () => {
-    if (!user) return 'A';
+    if (!user) return "A";
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return 'A';
+    return "A";
   };
   const renderHeader = () => (
     <ThemedView style={styles.header}>
       <ThemedText type="title">Preparation Checklist</ThemedText>
       <View style={styles.headerRight}>
-            <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+        <TouchableOpacity
+          style={{ marginLeft: 15 }}
+          onPress={() => setNotiSidebarVisible(true)}
+        >
+          <Ionicons name="notifications-outline" size={24} color="#333" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.profileIcon}
           onPress={() => setSidebarVisible(true)}
@@ -47,58 +47,75 @@ export default function TabTwoScreen() {
   const renderProgressSection = () => (
     <ThemedView style={styles.progressSection}>
       <ThemedView style={styles.progressCard}>
-        <ThemedText type="subtitle" style={styles.progressTitle}>Overall Progress</ThemedText>
+        <ThemedText type="subtitle" style={styles.progressTitle}>
+          Overall Progress
+        </ThemedText>
         <ThemedText style={styles.progressSubtitle}>
           {overallProgress > 80
             ? "You're nearly disaster ready! Great work!"
             : overallProgress > 50
-              ? "You're on track to becoming disaster ready!"
-              : "Start building your emergency preparedness!"}
+            ? "You're on track to becoming disaster ready!"
+            : "Start building your emergency preparedness!"}
         </ThemedText>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBar, { width: `${overallProgress}%` }]} />
+            <View
+              style={[styles.progressBar, { width: `${overallProgress}%` }]}
+            />
           </View>
-          <ThemedText type="defaultSemiBold" style={styles.progressText}>{overallProgress}%</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.progressText}>
+            {overallProgress}%
+          </ThemedText>
         </View>
       </ThemedView>
     </ThemedView>
   );
 
-  const renderChecklistSection = (category: 'essentials' | 'evacuation' | 'communication' | 'firstaid') => {
-    const items = checklist.filter(item => item.category === category);
+  const renderChecklistSection = (
+    category: "essentials" | "evacuation" | "communication" | "firstaid"
+  ) => {
+    const items = checklist.filter((item) => item.category === category);
     if (items.length === 0) return null;
 
     const categoryTitles = {
-      essentials: 'Emergency Essentials',
-      evacuation: 'Evacuation & Planning',
-      communication: 'Communication Strategy',
-      firstaid: 'First Aid Skills'
+      essentials: "Emergency Essentials",
+      evacuation: "Evacuation & Planning",
+      communication: "Communication Strategy",
+      firstaid: "First Aid Skills",
     };
 
     const categoryTitle = categoryTitles[category];
 
     return (
       <ThemedView style={styles.checklistSection} key={category}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>{categoryTitle}</ThemedText>
-        {items.map(item => (
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          {categoryTitle}
+        </ThemedText>
+        {items.map((item) => (
           <TouchableOpacity
             key={item.id}
-            onPress={() => toggleChecklistItem(item.id)}>
+            onPress={() => toggleChecklistItem(item.id)}
+          >
             <ThemedView style={styles.checklistItem}>
               <View style={styles.checklistIcon}>
                 <Icon
                   name={item.icon as any}
                   size={24}
-                  color={item.completed ? '#4CAF50' : '#00BCD4'}
+                  color={item.completed ? "#4CAF50" : "#00BCD4"}
                 />
               </View>
               <View style={styles.checklistContent}>
-                <ThemedText type="defaultSemiBold"
+                <ThemedText
+                  type="defaultSemiBold"
                   style={[
-                    item.completed ? { color: '#999' } : {},
-                    { textDecorationLine: item.completed ? 'line-through' : 'none' }
-                  ]}>
+                    item.completed ? { color: "#999" } : {},
+                    {
+                      textDecorationLine: item.completed
+                        ? "line-through"
+                        : "none",
+                    },
+                  ]}
+                >
                   {item.title}
                 </ThemedText>
                 <ThemedText style={styles.checklistDescription}>
@@ -107,9 +124,11 @@ export default function TabTwoScreen() {
               </View>
               <View style={styles.checkbox}>
                 <Icon
-                  name={item.completed ? 'check-box' : 'check-box-outline-blank'}
+                  name={
+                    item.completed ? "check-box" : "check-box-outline-blank"
+                  }
                   size={24}
-                  color={item.completed ? '#4CAF50' : '#E0E0E0'}
+                  color={item.completed ? "#4CAF50" : "#E0E0E0"}
                 />
               </View>
             </ThemedView>
@@ -120,24 +139,28 @@ export default function TabTwoScreen() {
   };
 
   const renderActionButton = () => {
-    const completedItems = checklist.filter(item => item.completed).length;
+    const completedItems = checklist.filter((item) => item.completed).length;
     const totalItems = checklist.length;
 
     return (
       <ThemedView style={styles.actionSection}>
         <TouchableOpacity>
           <LinearGradient
-            colors={['#00BCD4', '#4CAF50']}
+            colors={["#00BCD4", "#4CAF50"]}
             style={styles.actionButton}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}>
+            end={{ x: 1, y: 0 }}
+          >
             <Icon name="menu-book" size={24} color="#FFFFFF" />
             <View style={styles.actionButtonText}>
-              <ThemedText type="subtitle" style={{ color: '#FFFFFF' }}>
-                {overallProgress === 100 ? "Fully Prepared!" : "Keep Building Resilience!"}
+              <ThemedText type="subtitle" style={{ color: "#FFFFFF" }}>
+                {overallProgress === 100
+                  ? "Fully Prepared!"
+                  : "Keep Building Resilience!"}
               </ThemedText>
               <ThemedText style={styles.actionButtonSubtitle}>
-                {completedItems} of {totalItems} items completed. Every step counts!
+                {completedItems} of {totalItems} items completed. Every step
+                counts!
               </ThemedText>
             </View>
           </LinearGradient>
@@ -151,13 +174,16 @@ export default function TabTwoScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {renderHeader()}
         {renderProgressSection()}
-        {renderChecklistSection('essentials')}
-        {renderChecklistSection('evacuation')}
-        {renderChecklistSection('communication')}
-        {renderChecklistSection('firstaid')}
+        {renderChecklistSection("essentials")}
+        {renderChecklistSection("evacuation")}
+        {renderChecklistSection("communication")}
+        {renderChecklistSection("firstaid")}
         {renderActionButton()}
       </ScrollView>
-        <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
+      <NotificationDrawer
+        visible={notiSidebarVisible}
+        onClose={() => setNotiSidebarVisible(false)}
+      />
 
       <Sidebar
         visible={sidebarVisible}
@@ -165,42 +191,41 @@ export default function TabTwoScreen() {
       />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   profileIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#4ECDC4',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#4ECDC4",
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 15,
   },
   profileText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
     fontSize: 16,
   },
   progressSection: {
     padding: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   progressCard: {
     borderRadius: 15,
@@ -214,19 +239,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   progressBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   progressBarBackground: {
     flex: 1,
     height: 8,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 4,
     marginRight: 15,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#FF9800',
+    backgroundColor: "#FF9800",
     borderRadius: 4,
   },
   progressText: {
@@ -235,14 +260,14 @@ const styles = StyleSheet.create({
   checklistSection: {
     paddingHorizontal: 20,
     marginBottom: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   sectionTitle: {
     marginBottom: 15,
   },
   checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
@@ -250,7 +275,7 @@ const styles = StyleSheet.create({
   checklistIcon: {
     marginRight: 15,
     width: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   checklistContent: {
     flex: 1,
@@ -258,7 +283,7 @@ const styles = StyleSheet.create({
   checklistDescription: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#666'
+    color: "#666",
   },
   checkbox: {
     marginLeft: 10,
@@ -266,18 +291,18 @@ const styles = StyleSheet.create({
   actionSection: {
     padding: 20,
     paddingBottom: 40,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   actionButton: {
     borderRadius: 15,
     marginBottom: 15,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 20,
   },
   actionButtonText: {
@@ -286,17 +311,17 @@ const styles = StyleSheet.create({
   },
   actionButtonSubtitle: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.9,
     lineHeight: 20,
   },
   advancedButton: {
     borderRadius: 10,
     padding: 15,
-    alignItems: 'center',
+    alignItems: "center",
   },
   advancedButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

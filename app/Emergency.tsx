@@ -74,52 +74,20 @@ interface EmergencyContact {
     },
     {
       id: '5',
-      name: 'PDMA Punjab',
-      number: '042-99203357',
+      name: 'PDMA',
+      number: '1129',
       category: 'disaster',
-      description: 'Punjab Disaster Management Authority',
-      province: 'Punjab',
+      description: 'Provincial Disaster Management Authority',
+      province: 'provincial',
       icon: 'warning',
       color: '#FF9800',
       available24x7: true,
     },
-    {
-      id: '6',
-      name: 'PDMA Sindh',
-      number: '021-99206330',
-      category: 'disaster',
-      description: 'Sindh Disaster Management Authority',
-      province: 'Sindh',
-      icon: 'warning',
-      color: '#FF9800',
-      available24x7: true,
-    },
-    {
-      id: '7',
-      name: 'PDMA KPK',
-      number: '091-9212264',
-      category: 'disaster',
-      description: 'KPK Disaster Management Authority',
-      province: 'KPK',
-      icon: 'warning',
-      color: '#FF9800',
-      available24x7: true,
-    },
-    {
-      id: '8',
-      name: 'PDMA Balochistan',
-      number: '081-9202064',
-      category: 'disaster',
-      description: 'Balochistan Disaster Management Authority',
-      province: 'Balochistan',
-      icon: 'warning',
-      color: '#FF9800',
-      available24x7: true,
-    },
+
   
     // Fire Services
     {
-      id: '9',
+      id: '6',
       name: 'Fire Brigade Karachi',
       number: '16',
       category: 'fire',
@@ -130,7 +98,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '10',
+      id: '7',
       name: 'Fire Brigade Lahore',
       number: '042-99258222',
       category: 'fire',
@@ -141,7 +109,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '11',
+      id: '8',
       name: 'Fire Brigade Islamabad',
       number: '051-9261111',
       category: 'fire',
@@ -154,7 +122,7 @@ interface EmergencyContact {
   
     // Medical Emergency
     {
-      id: '12',
+      id: '9',
       name: 'Chippa Ambulance',
       number: '1020',
       category: 'medical',
@@ -164,7 +132,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '13',
+      id: '10',
       name: 'Aman Ambulance',
       number: '021-111-111-343',
       category: 'medical',
@@ -175,7 +143,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '14',
+      id: '11',
       name: 'Red Crescent',
       number: '051-9250404',
       category: 'medical',
@@ -187,7 +155,7 @@ interface EmergencyContact {
   
     // Utilities Emergency
     {
-      id: '15',
+      id: '12',
       name: 'K-Electric Emergency',
       number: '118',
       category: 'utility',
@@ -198,7 +166,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '16',
+      id: '13',
       name: 'LESCO Emergency',
       number: '042-111-111-253',
       category: 'utility',
@@ -209,7 +177,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '17',
+      id: '14',
       name: 'SSGC Emergency',
       number: '1199',
       category: 'utility',
@@ -219,7 +187,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '18',
+      id: '15',
       name: 'WASA Emergency',
       number: '042-111-111-092',
       category: 'utility',
@@ -232,7 +200,7 @@ interface EmergencyContact {
   
     // Government Helplines
     {
-      id: '19',
+      id: '16',
       name: 'PM Citizens Portal',
       number: '080-080-080',
       category: 'government',
@@ -242,7 +210,7 @@ interface EmergencyContact {
       available24x7: false,
     },
     {
-      id: '20',
+      id: '17',
       name: 'Women Helpline',
       number: '1091',
       category: 'government',
@@ -252,7 +220,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '21',
+      id: '18',
       name: 'Child Protection',
       number: '1121',
       category: 'government',
@@ -262,7 +230,7 @@ interface EmergencyContact {
       available24x7: true,
     },
     {
-      id: '22',
+      id: '19',
       name: 'Cyber Crime FIA',
       number: '1991',
       category: 'government',

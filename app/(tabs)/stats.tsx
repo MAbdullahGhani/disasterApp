@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useNavigation } from 'expo-router/build/useNavigation';
 import React, { useState } from 'react';
 import { Dimensions, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
@@ -273,7 +274,7 @@ export default function StatsScreen() {
                     </ThemedText>
                     <TouchableOpacity
                         style={styles.signInButton}
-                        onPress={() => navigation.navigate('AuthScreen')}
+                        onPress={() => router.push('AuthScreen')}
                     >
                         <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
                     </TouchableOpacity>
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 15,
-        borderBottomWidth: 1,
+        marginBottom: 12,
     },
     headerRight: { flexDirection: 'row', alignItems: 'center' },
     profileIcon: {
@@ -470,7 +471,8 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         backgroundColor: '#4ECDC4',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginLeft: 15,
     },
     profileText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
     section: {

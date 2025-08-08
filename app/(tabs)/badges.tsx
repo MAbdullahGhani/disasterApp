@@ -4,8 +4,9 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useNavigation } from 'expo-router/build/useNavigation';
 import React, { useMemo, useState } from 'react';
 import {
@@ -86,30 +87,21 @@ export default function BadgesScreen() {
     return (
       <ThemedView style={[styles.badgeContainer, { width: (width - 60) / 2 }]}>
         <View style={styles.badgeWrapper}>
-            <LinearGradient
+          <LinearGradient
             colors={getBadgeColors(badge)}
             style={styles.badgeCircle}
-            >
-            {badge.iconLibrary === 'MaterialIcons' ? (
-              <MaterialIcons
-              // fallback to Ionicons if MaterialIcons is not available
-              name="help-circle-outline"
-              size={32}
-              color={isEarned ? '#FFFFFF' : '#BDBDBD'}
-              />
-            ) : (
-              <Ionicons
+          >
+            <Ionicons
               name={badge.icon as any}
               size={32}
               color={isEarned ? '#FFFFFF' : '#BDBDBD'}
-              />
-            )}
-            </LinearGradient>
+            />
+          </LinearGradient>
           
           {/* Progress indicator for unearned badges */}
           {!isEarned && progress < 100 && (
             <View style={styles.progressRing}>
-              <ThemedText style={styles.progressText}>{progress}%</ThemedText>
+              <ThemedText style={styles.progressTextRing}>{progress}%</ThemedText>
             </View>
           )}
           
@@ -194,7 +186,7 @@ export default function BadgesScreen() {
         </ThemedText>
         <TouchableOpacity
           style={styles.signInButton}
-          onPress={() => navigation.navigate('AuthScreen')}
+          onPress={() => router.push('AuthScreen')}
         >
           <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
         </TouchableOpacity>
@@ -359,7 +351,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
+    // borderBottomWidth: 1,
   },
   headerRight: {
     flexDirection: 'row',
@@ -371,7 +363,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#4ECDC4',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginLeft: 15,
   },
   profileText: {
     color: '#FFFFFF',
@@ -422,7 +415,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     minWidth: 40,
-    fontSize: 14,
+    fontSize: 15,
   },
   statsCard: {
     borderRadius: 15,
@@ -507,10 +500,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  progressText: {
+  progressTextRing: {
     fontSize: 8,
     fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   earnedIndicator: {
     position: 'absolute',

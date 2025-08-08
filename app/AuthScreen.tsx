@@ -5,6 +5,7 @@ import { RootStackParamList } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useNavigation } from 'expo-router/build/useNavigation';
 import React, { useState } from 'react';
 import {
@@ -80,7 +81,7 @@ export default function AuthScreen(): JSX.Element {
 
             if (result.success) {
                 Alert.alert('Success', isLogin ? 'Signed in successfully!' : 'Account created successfully!');
-                navigation.navigate('(tabs)');
+                router.push('(tabs)');
             } else {
                 Alert.alert('Error', result.error || 'Authentication failed');
             }
