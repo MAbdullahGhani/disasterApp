@@ -9,22 +9,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Sidebar from "@/components/SideBar";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationDrawer from "@/components/NotificationSidebar";
+import { useTranslation } from "react-i18next";
 
 export default function ProgressScreen() {
+  const { t } = useTranslation(); // Using the translation hook
   const { categories, overallProgress, checklist } = useProgress();
   const { isAuthenticated, user } = useAuth();
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
-
   const [sidebarVisible, setSidebarVisible] = useState(false);
+
   const getUserDisplayName = () => {
-    if (!user) return "G";
+    if (!user) return t("progressScreen.defaultUserInitial");
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return "G";
+    return t("progressScreen.defaultUserInitial");
   };
+
   const renderHeader = () => (
     <ThemedView style={styles.header}>
-      <ThemedText type="title">Progress Overview</ThemedText>
+      <ThemedText type="title">{t("progressScreen.title")}</ThemedText>
       <View style={styles.headerRight}>
         <TouchableOpacity
           style={{ marginLeft: 15 }}
@@ -32,7 +35,6 @@ export default function ProgressScreen() {
         >
           <Ionicons name="notifications-outline" size={24} color="#333" />
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.profileIcon}
           onPress={() => setSidebarVisible(true)}
@@ -49,14 +51,14 @@ export default function ProgressScreen() {
     <ThemedView style={styles.section}>
       <ThemedView style={styles.progressCard}>
         <ThemedText type="subtitle" style={styles.progressTitle}>
-          Overall Preparedness
+          {t("progressScreen.overallPreparedness")}
         </ThemedText>
         <ThemedText style={styles.progressSubtitle}>
           {overallProgress > 80
-            ? "Excellent work! You're well on your way to being prepared."
+            ? t("progressScreen.preparednessMessage.high")
             : overallProgress > 50
-            ? "Great progress! Keep building your resilience."
-            : `Every step counts. Let's get you prepared!`}
+            ? t("progressScreen.preparednessMessage.medium")
+            : t("progressScreen.preparednessMessage.low")}
         </ThemedText>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
@@ -99,7 +101,7 @@ export default function ProgressScreen() {
   const renderCategoryProgress = () => (
     <ThemedView style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Category Progress
+        {t("progressScreen.categoryProgress")}
       </ThemedText>
       {categories.map((category) => {
         const categoryItems = checklist.filter(
@@ -134,8 +136,10 @@ export default function ProgressScreen() {
                     {category.name}
                   </ThemedText>
                   <ThemedText style={styles.categoryDescription}>
-                    {completedCategoryItems} of {categoryItems.length} items
-                    completed
+                    {t("progressScreen.categorySummary", {
+                      completed: completedCategoryItems,
+                      total: categoryItems.length,
+                    })}
                   </ThemedText>
                 </View>
               </View>
@@ -171,16 +175,16 @@ export default function ProgressScreen() {
     const isComplete = overallProgress === 100;
 
     const buttonText = isComplete
-      ? "You are Fully Prepared!"
+      ? t("progressScreen.actionButton.fullyPrepared")
       : firstAidProgress > 75
-      ? "Take Advanced First Aid Quiz"
+      ? t("progressScreen.actionButton.advancedQuiz")
       : firstAidProgress > 25
-      ? "Continue First Aid Learning"
-      : "Start First Aid Basics";
+      ? t("progressScreen.actionButton.continueLearning")
+      : t("progressScreen.actionButton.startBasics");
 
     const buttonSubtitle = isComplete
-      ? "Congratulations on achieving 100% readiness! 🎉"
-      : "Take the next step to improve your score.";
+      ? t("progressScreen.actionSubtitle.complete")
+      : t("progressScreen.actionSubtitle.incomplete");
 
     return (
       <ThemedView style={styles.actionSection}>
@@ -227,7 +231,6 @@ export default function ProgressScreen() {
         visible={notiSidebarVisible}
         onClose={() => setNotiSidebarVisible(false)}
       />
-
       <Sidebar
         visible={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
@@ -235,6 +238,7 @@ export default function ProgressScreen() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -246,7 +250,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-
   },
   headerRight: {
     flexDirection: "row",

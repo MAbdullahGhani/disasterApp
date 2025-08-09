@@ -1,4 +1,4 @@
-// services/NotificationService.ts (Enhanced Version)
+// services/NotificationService.ts (Enhanced & Fixed Version)
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
@@ -30,11 +30,11 @@ export interface NotificationData {
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    // Check notification priority for behavior
     const priority = notification.request.content.data?.priority || "medium";
+    const type = notification.request.content.data?.type || "info";
 
     return {
-      shouldShowAlert: true,
+      // shouldShowAlert: true,
       shouldPlaySound: priority === "critical" || priority === "high",
       shouldSetBadge: true,
       shouldShowBanner: true,
@@ -47,27 +47,35 @@ class NotificationService {
   expoPushToken: string | null = null;
   private listeners: (() => void)[] = [];
   private onNotificationReceived?: (notification: NotificationData) => void;
+  private isInitialized = false;
 
   async initialize(
     onNotificationReceived?: (notification: NotificationData) => void
   ) {
+    if (this.isInitialized) {
+      console.log("NotificationService already initialized");
+      return;
+    }
+
     this.onNotificationReceived = onNotificationReceived;
     await this.registerForPushNotifications();
     this.setupNotificationListeners();
     await this.setupNotificationChannels();
-    console.log("NotificationService initialized");
+    this.isInitialized = true;
+    console.log("NotificationService initialized successfully");
   }
 
   async setupNotificationChannels() {
     if (Platform.OS === "android") {
       // Critical alerts channel
       await Notifications.setNotificationChannelAsync("critical", {
-        name: "Critical Alerts",
+        name: "Critical Emergency Alerts",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF0000",
         sound: "default",
         bypassDnd: true,
+        showBadge: true,
       });
 
       // High priority alerts channel
@@ -77,22 +85,27 @@ class NotificationService {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF4500",
         sound: "default",
+        showBadge: true,
       });
 
       // Medium priority channel
       await Notifications.setNotificationChannelAsync("medium", {
-        name: "Medium Priority",
+        name: "Standard Alerts",
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 250],
         lightColor: "#FF9500",
+        showBadge: true,
       });
 
       // Low priority channel
       await Notifications.setNotificationChannelAsync("low", {
-        name: "Low Priority",
+        name: "Information",
         importance: Notifications.AndroidImportance.LOW,
         lightColor: "#4ECDC4",
+        showBadge: false,
       });
+
+      console.log("Android notification channels configured");
     }
   }
 
@@ -114,9 +127,16 @@ class NotificationService {
         return null;
       }
 
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      this.expoPushToken = token;
-      console.log("Expo Push Token:", token);
+      try {
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          projectId: "fdd0ee21-9313-44ae-850a-445938ce044d", // Replace with your actual project ID
+        });
+        token = tokenData.data;
+        this.expoPushToken = token;
+        console.log("Expo Push Token:", token);
+      } catch (error) {
+        console.error("Error getting push token:", error);
+      }
     } else {
       console.log("Must use physical device for Push Notifications");
     }
@@ -135,7 +155,7 @@ class NotificationService {
   ) {
     try {
       const notificationData: NotificationData = {
-        id: `location_${Date.now()}`,
+        id: `location_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type,
         title,
         message: body,
@@ -150,24 +170,26 @@ class NotificationService {
       // Store notification for in-app display
       await this.storeNotification(notificationData);
 
+      // Determine channel based on priority
+      const channelId = Platform.OS === 'android' ? priority : undefined;
+
       // Schedule the notification
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: this.getNotificationTitle(title, priority),
           body,
-          sound:
-            priority === "critical" || priority === "high"
-              ? "default"
-              : undefined,
+          sound: priority === "critical" || priority === "high" ? "default" : undefined,
           data: {
             notificationId: notificationData.id,
             priority,
             type,
             location,
+            timestamp: notificationData.timestamp,
             ...data,
           },
+          categoryIdentifier: type,
         },
-        trigger: { seconds: 1 },
+        trigger: { seconds: 1, channelId },
       });
 
       // Call callback if provided
@@ -175,6 +197,7 @@ class NotificationService {
         this.onNotificationReceived(notificationData);
       }
 
+      console.log(`Notification scheduled: ${title} (${priority})`);
       return notificationId;
     } catch (error) {
       console.error("Error scheduling location alert:", error);
@@ -188,7 +211,7 @@ class NotificationService {
       case "critical":
         return `🚨 CRITICAL: ${title}`;
       case "high":
-        return `⚠️ HIGH: ${title}`;
+        return `⚠️ ${title}`;
       case "medium":
         return `⚡ ${title}`;
       default:
@@ -256,6 +279,23 @@ class NotificationService {
     );
   }
 
+  // Emergency alert
+  async scheduleEmergencyAlert(
+    title: string,
+    body: string,
+    location?: string,
+    emergencyType?: string
+  ) {
+    return await this.scheduleLocationAlert(
+      title,
+      body,
+      "critical",
+      "emergency",
+      location,
+      { emergencyType }
+    );
+  }
+
   // Store notification for in-app display
   async storeNotification(notification: NotificationData) {
     try {
@@ -264,16 +304,31 @@ class NotificationService {
         ? JSON.parse(existing)
         : [];
 
-      // Add new notification at the beginning
-      notifications.unshift(notification);
+      // Check for duplicates based on title and timestamp proximity
+      const isDuplicate = notifications.some(existingNotif => {
+        const timeDiff = Math.abs(
+          new Date(notification.timestamp).getTime() - 
+          new Date(existingNotif.timestamp).getTime()
+        );
+        return existingNotif.title === notification.title && timeDiff < 60000; // Within 1 minute
+      });
 
-      // Keep only the last 50 notifications
-      const trimmedNotifications = notifications.slice(0, 50);
+      if (!isDuplicate) {
+        // Add new notification at the beginning
+        notifications.unshift(notification);
 
-      await AsyncStorage.setItem(
-        NOTIFICATION_STORAGE_KEY,
-        JSON.stringify(trimmedNotifications)
-      );
+        // Keep only the last 100 notifications
+        const trimmedNotifications = notifications.slice(0, 100);
+
+        await AsyncStorage.setItem(
+          NOTIFICATION_STORAGE_KEY,
+          JSON.stringify(trimmedNotifications)
+        );
+
+        console.log(`Notification stored: ${notification.title}`);
+      } else {
+        console.log(`Duplicate notification prevented: ${notification.title}`);
+      }
     } catch (error) {
       console.error("Error storing notification:", error);
     }
@@ -283,10 +338,26 @@ class NotificationService {
   async getStoredNotifications(): Promise<NotificationData[]> {
     try {
       const stored = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const notifications = stored ? JSON.parse(stored) : [];
+      
+      // Sort by timestamp (newest first)
+      return notifications.sort((a: NotificationData, b: NotificationData) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
     } catch (error) {
       console.error("Error getting stored notifications:", error);
       return [];
+    }
+  }
+
+  // Get unread notification count
+  async getUnreadCount(): Promise<number> {
+    try {
+      const notifications = await this.getStoredNotifications();
+      return notifications.filter(n => !n.read).length;
+    } catch (error) {
+      console.error("Error getting unread count:", error);
+      return 0;
     }
   }
 
@@ -303,6 +374,7 @@ class NotificationService {
         NOTIFICATION_STORAGE_KEY,
         JSON.stringify(updatedNotifications)
       );
+      console.log(`Notification marked as read: ${notificationId}`);
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -320,6 +392,7 @@ class NotificationService {
         NOTIFICATION_STORAGE_KEY,
         JSON.stringify(updatedNotifications)
       );
+      console.log("All notifications marked as read");
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
     }
@@ -455,6 +528,7 @@ class NotificationService {
     const { status } = await Notifications.getPermissionsAsync();
     return status;
   }
+
 
   // Send push notification (requires server implementation)
   async sendPushNotification(

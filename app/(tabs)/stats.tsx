@@ -5,21 +5,32 @@ import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useNavigation } from 'expo-router/build/useNavigation';
-import React, { useState } from 'react';
-import { Dimensions, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    Dimensions,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    useColorScheme
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Circle, G, Path, Svg, Text as SvgText } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
 export default function StatsScreen() {
-    const navigation = useNavigation();
+    const { t, i18n } = useTranslation();
     const colorScheme = useColorScheme();
     const { isAuthenticated, user } = useAuth();
     const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
+    const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
+
+    // This state helps trigger re-renders when the screen comes into focus
+    const [_, setForceUpdate] = useState(0);
 
     const {
         checklist,
@@ -29,14 +40,19 @@ export default function StatsScreen() {
         quizScores,
         earnedBadges,
         badges,
-        getProgressForCategory,
         getAllQuizStats,
         topicQuizScores,
         getTopicAverageScore,
         getTopicQuizCount
     } = useProgress();
 
-    // Get dynamic colors based on theme
+    // This hook ensures the screen updates with the correct language when focused
+    useFocusEffect(
+        React.useCallback(() => {
+            setForceUpdate(prev => prev + 1);
+        }, [])
+    );
+
     const getThemeColors = () => {
         const isDark = colorScheme === 'dark';
         return {
@@ -50,38 +66,35 @@ export default function StatsScreen() {
         };
     };
 
-    // --- Calculate Dynamic Values ---
     const progressDecimal = overallProgress / 100;
     const circumference = 2 * Math.PI * 50;
     const strokeDashoffset = circumference * (1 - progressDecimal);
-
     const completedItems = checklist.filter(item => item.completed).length;
     const totalItems = checklist.length;
-
     const quizStats = getAllQuizStats();
     const activePlans = checklist.filter(item => item.category === 'evacuation' && item.completed).length;
 
-    const pieData = categories.filter(cat => cat.percentage > 0).map(cat => ({
+    const pieData = useMemo(() => categories.filter(cat => cat.percentage > 0).map(cat => ({
         key: cat.id,
         value: cat.percentage,
         color: cat.color,
         label: cat.name
-    }));
+    })), [categories]);
 
-    // Topic quiz data for detailed stats
-    const topicQuizData = [
-        { id: 'disaster-prep', name: 'Disaster Prep', icon: 'shield-checkmark', color: '#FF6B35' },
-        { id: 'first-aid', name: 'First Aid', icon: 'medical', color: '#E74C3C' },
-        { id: 'fire-safety', name: 'Fire Safety', icon: 'flame', color: '#FF4444' },
-        { id: 'severe-weather', name: 'Weather', icon: 'thunderstorm', color: '#3498DB' },
-        { id: 'home-security', name: 'Security', icon: 'home', color: '#9B59B6' },
-        { id: 'travel-safety', name: 'Travel', icon: 'airplane', color: '#F39C12' }
+    const topicQuizData = useMemo(() => [
+        { id: 'disaster-prep', nameKey: 'statsScreen.topicNames.disasterPrep', icon: 'shield-checkmark', color: '#FF6B35' },
+        { id: 'first-aid', nameKey: 'statsScreen.topicNames.firstAid', icon: 'medical', color: '#E74C3C' },
+        { id: 'fire-safety', nameKey: 'statsScreen.topicNames.fireSafety', icon: 'flame', color: '#FF4444' },
+        { id: 'severe-weather', nameKey: 'statsScreen.topicNames.severeWeather', icon: 'thunderstorm', color: '#3498DB' },
+        { id: 'home-security', nameKey: 'statsScreen.topicNames.homeSecurity', icon: 'home', color: '#9B59B6' },
+        { id: 'travel-safety', nameKey: 'statsScreen.topicNames.travelSafety', icon: 'airplane', color: '#F39C12' }
     ].map(topic => ({
         ...topic,
+        name: t(topic.nameKey),
         count: getTopicQuizCount(topic.id),
         average: getTopicAverageScore(topic.id),
         taken: getTopicQuizCount(topic.id) > 0
-    }));
+    })), [i18n.language, getTopicQuizCount, getTopicAverageScore]);
 
     const getUserDisplayName = () => {
         if (!user) return 'A';
@@ -90,20 +103,19 @@ export default function StatsScreen() {
         return 'A';
     };
 
-    // Progress breakdown chart component
     const ProgressBreakdownChart = () => {
         const themeColors = getThemeColors();
         const { checklistProgress, quizPerformance, badgeAchievement } = progressStats;
         
         const data = [
-            { label: 'Tasks', value: checklistProgress, color: '#FF6B35' },
-            { label: 'Quizzes', value: quizPerformance, color: '#4ECDC4' },
-            { label: 'Badges', value: badgeAchievement, color: '#FFD700' }
+            { label: t('statsScreen.progressBreakdown.tasks'), value: checklistProgress, color: '#FF6B35' },
+            { label: t('statsScreen.progressBreakdown.quizzes'), value: quizPerformance, color: '#4ECDC4' },
+            { label: t('statsScreen.progressBreakdown.badges'), value: badgeAchievement, color: '#FFD700' }
         ];
 
         return (
             <ThemedView style={[styles.progressBreakdown, { backgroundColor: themeColors.cardBackground }]}>
-                <ThemedText type="defaultSemiBold" style={styles.breakdownTitle}>Progress Breakdown</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.breakdownTitle}>{t('statsScreen.progressBreakdown.title')}</ThemedText>
                 {data.map((item, index) => (
                     <View key={index} style={styles.progressItem}>
                         <View style={styles.progressItemHeader}>
@@ -112,15 +124,7 @@ export default function StatsScreen() {
                             <ThemedText style={[styles.progressValue, { color: item.color }]}>{item.value}%</ThemedText>
                         </View>
                         <View style={[styles.progressBarContainer, { backgroundColor: themeColors.progressBg }]}>
-                            <View 
-                                style={[
-                                    styles.progressBar, 
-                                    { 
-                                        width: `${item.value}%`, 
-                                        backgroundColor: item.color 
-                                    }
-                                ]} 
-                            />
+                            <View style={[styles.progressBar, { width: `${item.value}%`, backgroundColor: item.color }]} />
                         </View>
                     </View>
                 ))}
@@ -128,15 +132,14 @@ export default function StatsScreen() {
         );
     };
 
-    // Badge showcase component
     const BadgeShowcase = () => {
         const themeColors = getThemeColors();
-        const recentBadges = earnedBadges.slice(-3); // Show last 3 earned badges
+        const recentBadges = earnedBadges.slice(-3);
         
         return (
             <ThemedView style={[styles.badgeShowcase, { backgroundColor: themeColors.cardBackground }]}>
                 <View style={styles.badgeHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.badgeTitle}>Recent Achievements</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.badgeTitle}>{t('statsScreen.achievements.title')}</ThemedText>
                     <ThemedText style={[styles.badgeCount, { color: themeColors.mutedText }]}>
                         {earnedBadges.length}/{badges.length}
                     </ThemedText>
@@ -155,7 +158,7 @@ export default function StatsScreen() {
                         <View style={styles.noBadges}>
                             <Ionicons name="trophy-outline" size={32} color={themeColors.mutedText} />
                             <ThemedText style={[styles.noBadgesText, { color: themeColors.mutedText }]}>
-                                Complete tasks and quizzes to earn badges!
+                                {t('statsScreen.achievements.noBadges')}
                             </ThemedText>
                         </View>
                     )}
@@ -164,7 +167,7 @@ export default function StatsScreen() {
         );
     };
 
-    const StatCard = ({ icon, title, value, color, subtitle }: any) => {
+    const StatCard = ({ icon, title, value, color, subtitle }) => {
         const themeColors = getThemeColors();
         return (
             <ThemedView style={[styles.statCard, { backgroundColor: themeColors.cardBackground }]}>
@@ -178,7 +181,7 @@ export default function StatsScreen() {
         );
     };
 
-    const TopicQuizCard = ({ topic }: { topic: any }) => {
+    const TopicQuizCard = ({ topic }) => {
         const themeColors = getThemeColors();
         return (
             <ThemedView style={[styles.topicQuizCard, { borderLeftColor: topic.color, backgroundColor: themeColors.cardBackground }]}>
@@ -191,26 +194,16 @@ export default function StatsScreen() {
                             {topic.name}
                         </ThemedText>
                         <ThemedText style={[styles.topicQuizStats, { color: themeColors.mutedText }]}>
-                            {topic.taken ? (
-                                `${topic.count} taken • ${topic.average}% avg`
-                            ) : (
-                                'Not attempted'
-                            )}
+                            {topic.taken
+                                ? t('statsScreen.topicPerformance.stats', { count: topic.count, average: topic.average })
+                                : t('statsScreen.topicPerformance.notAttempted')}
                         </ThemedText>
                     </View>
                 </View>
                 {topic.taken && (
                     <View style={styles.topicProgress}>
                         <View style={[styles.topicProgressBar, { backgroundColor: themeColors.progressBg }]}>
-                            <View
-                                style={[
-                                    styles.topicProgressFill,
-                                    {
-                                        width: `${topic.average}%`,
-                                        backgroundColor: topic.color
-                                    }
-                                ]}
-                            />
+                            <View style={[styles.topicProgressFill, { width: `${topic.average}%`, backgroundColor: topic.color }]} />
                         </View>
                     </View>
                 )}
@@ -218,7 +211,7 @@ export default function StatsScreen() {
         );
     };
 
-    const PieChart = ({ data, size = 160 }: { data: typeof pieData, size?: number }) => {
+    const PieChart = ({ data, size = 160 }) => {
         const radius = size / 2 - 40;
         const cx = size / 2;
         const cy = size / 2;
@@ -227,18 +220,16 @@ export default function StatsScreen() {
 
         let currentAngle = 0;
 
-        const createPath = (startAngle: number, endAngle: number, radius: number) => {
+        const createPath = (startAngle, endAngle, radius) => {
             const x1 = cx + radius * Math.cos(startAngle);
             const y1 = cy + radius * Math.sin(startAngle);
             const x2 = cx + radius * Math.cos(endAngle);
             const y2 = cy + radius * Math.sin(endAngle);
-
             const largeArcFlag = endAngle - startAngle > Math.PI ? 1 : 0;
-
             return `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
         };
 
-        const paths = data.map((item, index) => {
+        const paths = data.map((item) => {
             const angle = (item.value / total) * 2 * Math.PI;
             const startAngle = currentAngle;
             const endAngle = currentAngle + angle;
@@ -268,15 +259,15 @@ export default function StatsScreen() {
             <ThemedView style={[styles.authOverlay, { backgroundColor: themeColors.overlay }]}>
                 <ThemedView style={[styles.authCard, { backgroundColor: themeColors.cardBackground }]}>
                     <Ionicons name="stats-chart" size={60} color="#4ECDC4" />
-                    <ThemedText style={styles.authTitle}>Sign In Required</ThemedText>
+                    <ThemedText style={styles.authTitle}>{t('statsScreen.auth.title')}</ThemedText>
                     <ThemedText style={[styles.authSubtitle, { color: themeColors.mutedText }]}>
-                        Sign in to view your personalized stats and track your progress
+                        {t('statsScreen.auth.subtitle')}
                     </ThemedText>
                     <TouchableOpacity
                         style={styles.signInButton}
                         onPress={() => router.push('AuthScreen')}
                     >
-                        <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
+                        <ThemedText style={styles.signInButtonText}>{t('statsScreen.auth.button')}</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
             </ThemedView>
@@ -285,14 +276,12 @@ export default function StatsScreen() {
 
     const renderContent = () => {
         const themeColors = getThemeColors();
-        
         return (
             <>
                 <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
-                    <ThemedText type="title">Stats Dashboard</ThemedText>
+                    <ThemedText type="title">{t('statsScreen.header')}</ThemedText>
                     <View style={styles.headerRight}>
-                     <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
-         
+                       <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
                         <TouchableOpacity
                             style={styles.profileIcon}
                             onPress={() => setSidebarVisible(true)}
@@ -305,9 +294,9 @@ export default function StatsScreen() {
                 </ThemedView>
 
                 <ThemedView style={styles.section}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Overall Preparedness Score</ThemedText>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>{t('statsScreen.overallScore.title')}</ThemedText>
                     <ThemedText style={[styles.sectionSubtitle, { color: themeColors.mutedText }]}>
-                        Based on tasks completed, quiz performance, and badges earned
+                        {t('statsScreen.overallScore.subtitle')}
                     </ThemedText>
                     <View style={styles.progressCircle}>
                         <Svg height="120" width="120" viewBox="0 0 120 120">
@@ -320,7 +309,6 @@ export default function StatsScreen() {
                     </View>
                 </ThemedView>
 
-                {/* Progress Breakdown Section */}
                 <View style={styles.section}>
                     <ProgressBreakdownChart />
                 </View>
@@ -328,40 +316,39 @@ export default function StatsScreen() {
                 <View style={styles.statsGrid}>
                     <StatCard
                         icon="checkmark-circle"
-                        title="Tasks Completed"
+                        title={t('statsScreen.statCards.tasksCompleted')}
                         value={`${completedItems}/${totalItems}`}
                         color="#FF6B35"
                         subtitle={`${progressStats.checklistProgress}%`}
                     />
                     <StatCard
                         icon="trophy"
-                        title="Quiz Average"
-                        value={quizStats.totalQuizzesTaken > 0 ? `${progressStats.quizPerformance}%` : 'N/A'}
+                        title={t('statsScreen.statCards.quizAverage')}
+                        value={quizStats.totalQuizzesTaken > 0 ? `${progressStats.quizPerformance}%` : t('statsScreen.statCards.notAvailable')}
                         color="#FFD700"
-                        subtitle={quizStats.totalQuizzesTaken > 0 ? `${quizStats.totalQuizzesTaken} taken` : undefined}
+                        subtitle={quizStats.totalQuizzesTaken > 0 ? t('statsScreen.statCards.taken', { count: quizStats.totalQuizzesTaken }) : undefined}
                     />
                     <StatCard
                         icon="medal"
-                        title="Badges Earned"
+                        title={t('statsScreen.statCards.badgesEarned')}
                         value={`${earnedBadges.length}/${badges.length}`}
                         color="#4ECDC4"
                         subtitle={`${progressStats.badgeAchievement}%`}
                     />
                     <StatCard
                         icon="shield-checkmark"
-                        title="Active Plans"
+                        title={t('statsScreen.statCards.activePlans')}
                         value={activePlans}
                         color="#8B5CF6"
                     />
                 </View>
 
-                {/* Badge Showcase Section */}
                 <View style={styles.section}>
                     <BadgeShowcase />
                 </View>
 
                 <ThemedView style={styles.section}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Quiz Performance by Topic</ThemedText>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>{t('statsScreen.topicPerformance.title')}</ThemedText>
                     <View style={styles.topicQuizContainer}>
                         {topicQuizData.map(topic => (
                             <TopicQuizCard key={topic.id} topic={topic} />
@@ -370,7 +357,7 @@ export default function StatsScreen() {
                 </ThemedView>
 
                 <ThemedView style={styles.section}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Task Category Breakdown</ThemedText>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>{t('statsScreen.categoryBreakdown.title')}</ThemedText>
                     <ThemedView style={[styles.pieContainer, { backgroundColor: themeColors.cardBackground }]}>
                         <PieChart data={pieData} size={200} />
                         <View style={styles.legendContainer}>
@@ -387,25 +374,25 @@ export default function StatsScreen() {
 
                 {quizStats.totalQuizzesTaken > 0 && (
                     <ThemedView style={styles.section}>
-                        <ThemedText type="subtitle" style={styles.sectionTitle}>Quiz Insights</ThemedText>
+                        <ThemedText type="subtitle" style={styles.sectionTitle}>{t('statsScreen.quizInsights.title')}</ThemedText>
                         <View style={styles.insightsContainer}>
                             <ThemedView style={[styles.insightCard, { backgroundColor: themeColors.cardBackground }]}>
                                 <ThemedText style={styles.insightValue}>
                                     {Object.keys(topicQuizScores).length}
                                 </ThemedText>
-                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>Topics Explored</ThemedText>
+                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>{t('statsScreen.quizInsights.topicsExplored')}</ThemedText>
                             </ThemedView>
                             <ThemedView style={[styles.insightCard, { backgroundColor: themeColors.cardBackground }]}>
                                 <ThemedText style={styles.insightValue}>
                                     {Math.max(...Object.values(topicQuizScores).map(scores => scores.length), 0)}
                                 </ThemedText>
-                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>Most Practiced Topic</ThemedText>
+                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>{t('statsScreen.quizInsights.mostPracticed')}</ThemedText>
                             </ThemedView>
                             <ThemedView style={[styles.insightCard, { backgroundColor: themeColors.cardBackground }]}>
                                 <ThemedText style={styles.insightValue}>
                                     {quizStats.perfectScores}
                                 </ThemedText>
-                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>Perfect Scores</ThemedText>
+                                <ThemedText style={[styles.insightLabel, { color: themeColors.mutedText }]}>{t('statsScreen.quizInsights.perfectScores')}</ThemedText>
                             </ThemedView>
                         </View>
                     </ThemedView>
@@ -415,10 +402,8 @@ export default function StatsScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} key={i18n.language}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-
-            {/* Main Content with conditional blur/opacity */}
             <View style={[styles.contentContainer, !isAuthenticated && styles.blurredContent]}>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -429,12 +414,9 @@ export default function StatsScreen() {
                 </ScrollView>
             </View>
 
-            {/* Auth Overlay - only show when not authenticated */}
             {!isAuthenticated && <AuthOverlay />}
-
-            {/* Sidebar Menu */}
-                    <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
             
+            <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
             <Sidebar
                 visible={sidebarVisible}
                 onClose={() => setSidebarVisible(false)}
@@ -494,7 +476,6 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginBottom: 15
     },
-    // Progress Breakdown Styles
     progressBreakdown: {
         borderRadius: 16,
         padding: 20,
@@ -541,7 +522,6 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 3,
     },
-    // Badge Showcase Styles
     badgeShowcase: {
         borderRadius: 16,
         padding: 20,

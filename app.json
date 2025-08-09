@@ -15,8 +15,22 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
-        "NSLocationAlwaysUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area."
+        "NSLocationAlwaysUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
+        "UIBackgroundModes": [
+          "location",
+          "background-processing",
+          "background-fetch",
+          "location",
+          "background-processing",
+          "background-fetch"
+        ]
       }
+    },
+    "notification": {
+      "icon": "./assets/images/notification-icon.png",
+      "color": "#4ECDC4",
+      "androidMode": "default",
+      "androidCollapsedTitle": "#{unread_notifications} new alerts"
     },
     "android": {
       "permissions": [
@@ -26,7 +40,20 @@
         "VIBRATE",
         "WAKE_LOCK",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Pdr_logo.png"
@@ -53,9 +80,11 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to provide weather forecasts and disaster alerts for your area.",
-          "locationAlwaysPermission": "Allow $(PRODUCT_NAME) to use your location to provide weather forecasts and disaster alerts for your area.",
-          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to provide weather forecasts and disaster alerts for your area."
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to provide emergency alerts based on your current area.",
+          "locationAlwaysPermission": "This app needs background location access to send you critical safety alerts even when the app is closed.",
+          "locationWhenInUsePermission": "This app needs location access to provide weather updates and local emergency information.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
       [
@@ -70,9 +99,14 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#ffffff",
-          "defaultChannel": "default"
+          "color": "#4ECDC4",
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
         }
+      ],
+      [
+        "expo-task-manager"
       ],
       "expo-web-browser",
       "expo-secure-store",
@@ -81,6 +115,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/fdd0ee21-9313-44ae-850a-445938ce044d"
     }
   }
 }

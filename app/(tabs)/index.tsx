@@ -1,4 +1,4 @@
-import NotificationDrawer from "@/components/NotificationSidebar";
+// HomeScreen.tsx - Fixed and Complete Location-Based Alerts Integration
 import Sidebar from "@/components/SideBar";
 import { ThemedInput } from "@/components/ThemedInput";
 import { ThemedText } from "@/components/ThemedText";
@@ -8,7 +8,7 @@ import useDebouncedSearch from "@/hooks/useDebounce";
 import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { XMLParser } from "fast-xml-parser";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,8 +16,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  AppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Import our services
+import NotificationDrawer from "@/components/NotificationSidebar";
+import locationAlertService from "@/services/locationAlertService";
+import NotificationService, { NotificationData } from "@/services/notificationService";
 
 // --- Constants ---
 const PAKISTAN_BOUNDS = {
@@ -61,7 +67,7 @@ interface CitySuggestion {
   latitude: number;
   longitude: number;
   country: string;
-  admin1?: string; // State/Province
+  admin1?: string;
 }
 
 interface DisasterResource {
@@ -80,27 +86,97 @@ export default function HomeScreen() {
   const [loadingWeather, setLoadingWeather] = useState(true);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [seismicAlerts, setSeismicAlerts] = useState<AlertType[]>([]);
-  const [pakistanFloodAlerts, setPakistanFloodAlerts] = useState<AlertType[]>(
-    []
-  );
-  const [internationalFloodAlerts, setInternationalFloodAlerts] = useState<
-    AlertType[]
-  >([]);
+  const [pakistanFloodAlerts, setPakistanFloodAlerts] = useState<AlertType[]>([]);
+  const [internationalFloodAlerts, setInternationalFloodAlerts] = useState<AlertType[]>([]);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
-  const [disasterResources, setDisasterResources] = useState<
-    DisasterResource[]
-  >([]);
+  const [disasterResources, setDisasterResources] = useState<DisasterResource[]>([]);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [locationAlerts, setLocationAlerts] = useState([]);
+
   const { user } = useAuth();
-  const { suggestions: citySuggestions, loading: loadingSuggestions } =
-    useDebouncedSearch(searchQuery);
+  const { suggestions: citySuggestions, loading: loadingSuggestions } = useDebouncedSearch(searchQuery);
+  const appState = useRef(AppState.currentState);
 
   // --- Effects ---
   useEffect(() => {
+    initializeServices();
     loadInitialData();
+    
+    const handleAppStateChange = (nextAppState: string) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App came to foreground, refresh data
+        refreshLocationData();
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+      cleanup();
+    };
   }, []);
+
+  // Initialize services
+  const initializeServices = async () => {
+    try {
+      // Initialize notification service with callback
+      await NotificationService.initialize((notification: NotificationData) => {
+        updateNotificationCount();
+        // Show immediate feedback for critical notifications
+        if (notification.priority === 'critical') {
+          Alert.alert(
+            "🚨 CRITICAL ALERT",
+            notification.message,
+            [
+              { text: "Dismiss", style: "cancel" },
+              { text: "View Details", onPress: () => setNotiSidebarVisible(true) }
+            ]
+          );
+        }
+        console.log('New notification received in app:', notification.title);
+      });
+
+      // Initialize location alert service
+      await locationAlertService.initialize();
+      
+      console.log('Services initialized successfully');
+    } catch (error) {
+      console.error('Error initializing services:', error);
+    }
+  };
+
+  // Update notification count
+  const updateNotificationCount = async () => {
+    try {
+      const notifications = await NotificationService.getStoredNotifications();
+      const unreadCount = notifications.filter(n => !n.read).length;
+      setNotificationCount(unreadCount);
+    } catch (error) {
+      console.error('Error updating notification count:', error);
+    }
+  };
+
+  // Refresh location-based data
+  const refreshLocationData = async () => {
+    try {
+      const alerts = await locationAlertService.getAllAlerts();
+      // setLocationAlerts(alerts);
+      await updateNotificationCount();
+    } catch (error) {
+      console.error('Error refreshing location data:', error);
+    }
+  };
+
+  // Cleanup services
+  const cleanup = () => {
+    locationAlertService.cleanup();
+    NotificationService.cleanup();
+  };
 
   // --- Data Fetching ---
   const loadInitialData = async () => {
@@ -110,6 +186,8 @@ export default function HomeScreen() {
       fetchSeismicData(),
       fetchFloodData(),
       loadDisasterResources(),
+      updateNotificationCount(),
+      refreshLocationData(),
     ]);
     setAlertsLoading(false);
   };
@@ -121,7 +199,7 @@ export default function HomeScreen() {
         title: "NDMA Pakistan",
         description: "National Disaster Management Authority updates",
         source: "NDMA",
-        lastUpdated: "August 7, 2025",
+        lastUpdated: "August 9, 2025",
         link: "http://ndma.gov.pk/",
         status: "active",
       },
@@ -130,7 +208,7 @@ export default function HomeScreen() {
         title: "PMD Weather",
         description: "Pakistan Meteorological Department forecasts",
         source: "PMD",
-        lastUpdated: "August 7, 2025",
+        lastUpdated: "August 9, 2025",
         link: "https://www.pmd.gov.pk/en/",
         status: "normal",
       },
@@ -139,7 +217,7 @@ export default function HomeScreen() {
         title: "PDMA Emergency",
         description: "Provincial Disaster Management response",
         source: "PDMA",
-        lastUpdated: "August 7, 2025",
+        lastUpdated: "August 9, 2025",
         link: "https://www.pdma.gov.pk/",
         status: "warning",
       },
@@ -148,7 +226,7 @@ export default function HomeScreen() {
         title: "Rescue 1122",
         description: "Emergency rescue services - Call 1122",
         source: "Rescue Service",
-        lastUpdated: "August 7, 2025",
+        lastUpdated: "August 9, 2025",
         link: "https://rescue.gov.pk/",
         status: "active",
       },
@@ -169,18 +247,24 @@ export default function HomeScreen() {
         );
         return;
       }
+      
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+      
       const cityName = await getCityName(
         location.coords.latitude,
         location.coords.longitude
       );
+      
       await fetchWeatherData(
         location.coords.latitude,
         location.coords.longitude,
         cityName
       );
+
+      // Trigger location-based alert checking
+      await locationAlertService.handleLocationUpdate(location);
     } catch (error) {
       console.error("Error getting location or city name:", error);
       await fetchWeatherData(
@@ -229,14 +313,14 @@ export default function HomeScreen() {
   };
 
   const fetchWeatherData = async (lat: number, lon: number, city: string) => {
-    // This function remains the same, using Open-Meteo for weather forecasts
     setLoadingWeather(true);
     try {
       const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&hourly=precipitation_probability&timezone=auto`
       );
       if (!weatherRes.ok) throw new Error("Weather API request failed");
       const data = await weatherRes.json();
+
       const weather: WeatherData = {
         city,
         temp: Math.round(data.current_weather.temperature),
@@ -252,11 +336,63 @@ export default function HomeScreen() {
         })),
       };
       setWeatherData(weather);
+
+      // Check for weather-based alerts
+      await checkWeatherAlerts(data, city);
     } catch (e) {
       console.error("Weather API Error:", e);
       setWeatherData(null);
     } finally {
       setLoadingWeather(false);
+    }
+  };
+
+  // Check for weather-based alerts
+  const checkWeatherAlerts = async (weatherData: any, city: string) => {
+    try {
+      if (weatherData.hourly?.precipitation_probability) {
+        const next24Hours = weatherData.hourly.precipitation_probability.slice(0, 24);
+        const maxPrecipitation = Math.max(...next24Hours);
+        
+        if (maxPrecipitation > 70) {
+          await NotificationService.scheduleWeatherAlert(
+            'Heavy Rain Warning',
+            `High chance of rain (${maxPrecipitation}%) expected in ${city} within 24 hours. Take necessary precautions.`,
+            maxPrecipitation > 90 ? 'critical' : 'high',
+            city
+          );
+          
+          // Update notification count after scheduling
+          await updateNotificationCount();
+        }
+      }
+
+      // Check for extreme temperatures
+      if (weatherData.daily?.temperature_2m_max?.[0] > 40) {
+        await NotificationService.scheduleWeatherAlert(
+          'Extreme Heat Warning',
+          `Dangerous high temperatures up to ${Math.round(weatherData.daily.temperature_2m_max[0])}°C expected in ${city}. Stay hydrated and avoid outdoor activities.`,
+          'critical',
+          city
+        );
+        
+        // Update notification count after scheduling
+        await updateNotificationCount();
+      }
+
+      // Check for cold weather alerts
+      if (weatherData.daily?.temperature_2m_min?.[0] < 5) {
+        await NotificationService.scheduleWeatherAlert(
+          'Cold Weather Warning',
+          `Extremely cold temperatures down to ${Math.round(weatherData.daily.temperature_2m_min[0])}°C expected in ${city}. Protect against hypothermia.`,
+          'high',
+          city
+        );
+        
+        await updateNotificationCount();
+      }
+    } catch (error) {
+      console.error('Error checking weather alerts:', error);
     }
   };
 
@@ -267,7 +403,6 @@ export default function HomeScreen() {
       );
       const data = await res.json();
 
-      // Filter strictly for Pakistan-related entries only
       const pakistanFeatures = data.features.filter((eq: any) => {
         const place = eq.properties.place.toLowerCase();
         return (
@@ -286,7 +421,6 @@ export default function HomeScreen() {
 
       if (pakistanFeatures.length === 0) {
         setSeismicAlerts([]);
-        console.log("No seismic activity found in Pakistan.");
         return;
       }
 
@@ -309,14 +443,46 @@ export default function HomeScreen() {
         }));
 
       setSeismicAlerts(parsed);
+
+      // Check for recent significant earthquakes and send notifications
+      await checkSeismicAlerts(pakistanFeatures);
     } catch (err) {
       console.error("Earthquake API error:", err);
       setSeismicAlerts([]);
     }
   };
 
+  // Check for seismic alerts that warrant notifications
+  const checkSeismicAlerts = async (earthquakes: any[]) => {
+    try {
+      for (const eq of earthquakes) {
+        const magnitude = eq.properties.mag;
+        const place = eq.properties.place;
+        const time = new Date(eq.properties.time);
+        const now = new Date();
+        const hoursSince = (now.getTime() - time.getTime()) / (1000 * 60 * 60);
+        
+        // Only notify for recent earthquakes (within last 2 hours) and magnitude >= 4.0
+        if (hoursSince <= 2 && magnitude >= 4.0) {
+          const severity = magnitude >= 6.0 ? 'critical' : magnitude >= 5.0 ? 'high' : 'moderate';
+          
+          await NotificationService.scheduleSeismicAlert(
+            `Earthquake M${magnitude.toFixed(1)} Detected`,
+            `A magnitude ${magnitude.toFixed(1)} earthquake occurred ${place}. Monitor for aftershocks and follow safety protocols.`,
+            magnitude,
+            place
+          );
+          
+          // Update notification count after scheduling
+          await updateNotificationCount();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking seismic alerts:', error);
+    }
+  };
+
   const fetchFloodData = async () => {
-    // This function remains the same
     try {
       const proxyUrl = "https://api.codetabs.com/v1/proxy?quest=";
       const targetUrl = "https://www.gdacs.org/xml/rss.xml";
@@ -330,8 +496,9 @@ export default function HomeScreen() {
           ? xmlDoc.rss.channel.item
           : [xmlDoc.rss.channel.item]
         : [];
-      const pakistanAlerts: AlertType[] = [],
-        internationalAlerts: AlertType[] = [];
+      
+      const pakistanAlerts: AlertType[] = [];
+      const internationalAlerts: AlertType[] = [];
       const pakistaniKeywords = [
         "pakistan",
         "karachi",
@@ -345,6 +512,7 @@ export default function HomeScreen() {
         "kashmir",
         "indus",
       ];
+      
       items
         .filter((item: any) =>
           (item.title || "").toLowerCase().includes("flood")
@@ -361,19 +529,29 @@ export default function HomeScreen() {
             severity: "moderate",
             link: item.link,
           };
-          if (pakistaniKeywords.some((keyword) => title.includes(keyword)))
+          
+          if (pakistaniKeywords.some((keyword) => title.includes(keyword))) {
             pakistanAlerts.push(alert);
-          else internationalAlerts.push(alert);
+            
+            // Send notification for Pakistan flood alerts
+            NotificationService.scheduleLocationAlert(
+              'Flood Alert in Pakistan',
+              `Flood conditions reported: ${item.title}`,
+              'high',
+              'flood',
+              'Pakistan Region'
+            ).then(() => updateNotificationCount());
+          } else {
+            internationalAlerts.push(alert);
+          }
         });
+      
       setPakistanFloodAlerts(pakistanAlerts.slice(0, 3));
       setInternationalFloodAlerts(internationalAlerts.slice(0, 3));
     } catch (error) {
       console.error("🚨 Flood data fetch failed:", error);
     }
   };
-
-  // --- API FIX: FINAL IMPLEMENTATION ---
-  // Using Open-Meteo's geocoding API. It's fast, requires NO API key, and works globally.
 
   // --- Helper Functions ---
   const getTimeAgo = (date: Date): string => {
@@ -389,7 +567,6 @@ export default function HomeScreen() {
     return `Just now`;
   };
 
-  // Corrected weather condition map for Open-Meteo's WMO codes
   const getWeatherCondition = (code: number): string => {
     const conditionMap: { [key: number]: string } = {
       0: "Clear",
@@ -465,6 +642,65 @@ export default function HomeScreen() {
     );
   };
 
+  // Test notification functions for development
+  const sendTestAlert = async () => {
+    Alert.alert(
+      "Send Test Alert",
+      "What type of test alert would you like to send?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Weather Alert",
+          onPress: async () => {
+            await NotificationService.scheduleWeatherAlert(
+              "TEST: Severe Weather",
+              "This is a test weather alert for your current location.",
+              "high",
+              weatherData?.city || "Current Location"
+            );
+            await updateNotificationCount();
+          },
+        },
+        {
+          text: "Earthquake Alert",
+          onPress: async () => {
+            await NotificationService.scheduleSeismicAlert(
+              "TEST: Earthquake Detected",
+              "This is a test earthquake alert for development purposes.",
+              4.5,
+              weatherData?.city || "Current Location"
+            );
+            await updateNotificationCount();
+          },
+        },
+        {
+          text: "Evacuation Notice",
+          onPress: async () => {
+            await NotificationService.scheduleEvacuationNotice(
+              "TEST: Evacuation Notice",
+              "This is a test evacuation alert. Please follow evacuation procedures.",
+              weatherData?.city || "Current Location"
+            );
+            await updateNotificationCount();
+          },
+        },
+        {
+          text: "Location Test Alerts",
+          onPress: async () => {
+            await locationAlertService.createTestAlerts();
+            await updateNotificationCount();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleNotificationPress = () => {
+    setNotiSidebarVisible(true);
+    // Update count when drawer opens
+    updateNotificationCount();
+  };
+
   // --- Render Functions ---
   const renderHeader = () => (
     <ThemedView style={styles.header}>
@@ -476,7 +712,6 @@ export default function HomeScreen() {
             color="#999"
             style={styles.searchIcon}
           />
-          {/* Updated placeholder to reflect global search */}
           <ThemedInput
             style={styles.searchInput}
             placeholder="Search for any city..."
@@ -501,12 +736,29 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => setIsSearchVisible(true)}>
               <Ionicons name="search-outline" size={24} color="#333" />
             </TouchableOpacity>
+            
+            {/* Test button for development */}
             <TouchableOpacity
               style={{ marginLeft: 15 }}
-              onPress={() => setNotiSidebarVisible(true)}
+              onPress={sendTestAlert}
+            >
+              <Ionicons name="flask-outline" size={24} color="#333" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.notificationButton, { marginLeft: 15 }]}
+              onPress={handleNotificationPress}
             >
               <Ionicons name="notifications-outline" size={24} color="#333" />
+              {notificationCount > 0 && (
+                <ThemedView style={styles.notificationBadge}>
+                  <ThemedText style={styles.notificationBadgeText}>
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </ThemedText>
+                </ThemedView>
+              )}
             </TouchableOpacity>
+            
             <TouchableOpacity
               style={styles.profileIcon}
               onPress={() => setSidebarVisible(true)}
@@ -574,69 +826,22 @@ export default function HomeScreen() {
     );
   };
 
-  const renderPakistaniResources = () => (
-    <ThemedView style={styles.section}>
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Local Resources
-      </ThemedText>
-      <ThemedView style={styles.resourcesGrid}>
-        {disasterResources.map((resource) => (
-          <TouchableOpacity
-            key={resource.id}
-            onPress={() => handleResourcePress(resource)}
-          >
-            <ThemedView
-              style={[
-                styles.resourceCard,
-                {
-                  borderLeftColor:
-                    resource.status === "active"
-                      ? "#4CAF50"
-                      : resource.status === "warning"
-                      ? "#FF9800"
-                      : "#2196F3",
-                },
-              ]}
-            >
-              <ThemedView style={styles.resourceContent}>
-                <ThemedView style={styles.resourceHeader}>
-                  <ThemedText style={styles.resourceTitle}>
-                    {resource.title}
-                  </ThemedText>
-                  <ThemedView
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor:
-                          resource.status === "active"
-                            ? "#4CAF50"
-                            : resource.status === "warning"
-                            ? "#FF9800"
-                            : "#2196F3",
-                      },
-                    ]}
-                  >
-                    <ThemedText style={styles.statusText}>
-                      {resource.status.toUpperCase()}
-                    </ThemedText>
-                  </ThemedView>
-                </ThemedView>
-                <ThemedText
-                  style={styles.resourceDescription}
-                  numberOfLines={1}
-                >
-                  {resource.description}
-                </ThemedText>
-                <ThemedText style={styles.resourceSource}>
-                  {resource.source}
-                </ThemedText>
-              </ThemedView>
-            </ThemedView>
-          </TouchableOpacity>
-        ))}
-      </ThemedView>
-    </ThemedView>
-  );
+  // const renderLocationAlertsBanner = () => {
+  //   const activeAlerts = locationAlerts.filter((alert: any) => alert.isActive);
+  //   if (activeAlerts.length === 0) return null;
+
+  //   return (
+  //     <ThemedView style={styles.alertsBanner}>
+  //       <Ionicons name="warning" size={20} color="#FF4444" />
+  //       <ThemedText style={styles.alertsBannerText}>
+  //         {activeAlerts.length} active location alert{activeAlerts.length !== 1 ? 's' : ''} in your area
+  //       </ThemedText>
+  //       <TouchableOpacity onPress={() => setNotiSidebarVisible(true)}>
+  //         <ThemedText style={styles.alertsBannerLink}>View</ThemedText>
+  //       </TouchableOpacity>
+  //     </ThemedView>
+  //   );
+  // };
 
   const renderWeatherSection = () => (
     <ThemedView style={styles.section}>
@@ -736,7 +941,7 @@ export default function HomeScreen() {
               backgroundColor:
                 alert.severity === "high"
                   ? "#FF5722"
-                  : "moderate"
+                  : alert.severity === "moderate"
                   ? "#FF9800"
                   : "#4CAF50",
             },
@@ -809,6 +1014,70 @@ export default function HomeScreen() {
     </ThemedView>
   );
 
+  const renderPakistaniResources = () => (
+    <ThemedView style={styles.section}>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>
+        Local Resources
+      </ThemedText>
+      <ThemedView style={styles.resourcesGrid}>
+        {disasterResources.map((resource) => (
+          <TouchableOpacity
+            key={resource.id}
+            onPress={() => handleResourcePress(resource)}
+          >
+            <ThemedView
+              style={[
+                styles.resourceCard,
+                {
+                  borderLeftColor:
+                    resource.status === "active"
+                      ? "#4CAF50"
+                      : resource.status === "warning"
+                      ? "#FF9800"
+                      : "#2196F3",
+                },
+              ]}
+            >
+              <ThemedView style={styles.resourceContent}>
+                <ThemedView style={styles.resourceHeader}>
+                  <ThemedText style={styles.resourceTitle}>
+                    {resource.title}
+                  </ThemedText>
+                  <ThemedView
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          resource.status === "active"
+                            ? "#4CAF50"
+                            : resource.status === "warning"
+                            ? "#FF9800"
+                            : "#2196F3",
+                      },
+                    ]}
+                  >
+                    <ThemedText style={styles.statusText}>
+                      {resource.status.toUpperCase()}
+                    </ThemedText>
+                  </ThemedView>
+                </ThemedView>
+                <ThemedText
+                  style={styles.resourceDescription}
+                  numberOfLines={1}
+                >
+                  {resource.description}
+                </ThemedText>
+                <ThemedText style={styles.resourceSource}>
+                  {resource.source}
+                </ThemedText>
+              </ThemedView>
+            </ThemedView>
+          </TouchableOpacity>
+        ))}
+      </ThemedView>
+    </ThemedView>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -818,6 +1087,8 @@ export default function HomeScreen() {
       >
         {renderHeader()}
         {renderCitySuggestions()}
+        {/* {renderLocationAlertsBanner()} */}
+        
         <Sidebar
           visible={sidebarVisible}
           onClose={() => setSidebarVisible(false)}
@@ -826,6 +1097,7 @@ export default function HomeScreen() {
           visible={notiSidebarVisible}
           onClose={() => setNotiSidebarVisible(false)}
         />
+        
         {!isSearchVisible && (
           <>
             {renderWeatherSection()}
@@ -853,6 +1125,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "transparent",
   },
+  notificationButton: {
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   profileIcon: {
     width: 32,
     height: 32,
@@ -871,6 +1163,30 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 16, height: 40 },
+  alertsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF4444',
+  },
+  alertsBannerText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#E65100',
+    fontWeight: '500',
+  },
+  alertsBannerLink: {
+    fontSize: 14,
+    color: '#FF4444',
+    fontWeight: 'bold',
+  },
   suggestionsContainer: {
     elevation: 4,
     shadowColor: "#000",
@@ -919,7 +1235,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     elevation: 2,
     shadowColor: "#000",
-
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },

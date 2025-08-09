@@ -24,5 +24,126 @@
   "selectLanguage": "Select Language",
   "english": "English",
   "urdu": "Urdu",
-  "spanish": "Spanish"
+  "spanish": "Spanish",
+  "profile": "Profile",
+  "enterPlaceholder": "Enter {{title}}",
+  "notProvided": "Not provided",
+  "success": "Success",
+  "profileUpdated": "Profile updated successfully",
+  "error": "Error",
+  "profileUpdateFailed": "Failed to update profile",
+  "profileUpdateError": "An error occurred while updating profile",
+  "permissionRequired": "Permission Required",
+  "cameraPermission": "Permission to access camera roll is required!",
+  "imagePickFailed": "Failed to pick image",
+  "anonymousUser": "Anonymous User",
+  "guestAccount": "Guest Account",
+  "verifiedUser": "Verified User",
+  "personalInfo": "Personal Information",
+  "displayName": "Display Name",
+  "email": "Email",
+  "phone": "Phone",
+  "location": "Location",
+  "emergencyInfo": "Emergency Information",
+  "emergencyContact": "Emergency Contact",
+  "accountStats": "Account Statistics",
+  "alertsReceived": "Alerts Received",
+  "areasMonitored": "Areas Monitored",
+  "downloadMyData": "Download My Data",
+  "deleteAccount": "Delete Account",
+  "statsScreen": {
+    "header": "Stats Dashboard",
+    "overallScore": {
+      "title": "Overall Preparedness Score",
+      "subtitle": "Based on tasks completed, quiz performance, and badges earned"
+    },
+    "progressBreakdown": {
+      "title": "Progress Breakdown",
+      "tasks": "Tasks",
+      "quizzes": "Quizzes",
+      "badges": "Badges"
+    },
+    "achievements": {
+      "title": "Recent Achievements",
+      "noBadges": "Complete tasks and quizzes to earn badges!"
+    },
+    "statCards": {
+      "tasksCompleted": "Tasks Completed",
+      "quizAverage": "Quiz Average",
+      "badgesEarned": "Badges Earned",
+      "activePlans": "Active Plans",
+      "notAvailable": "N/A",
+      "taken": "{{count}} taken"
+    },
+    "topicPerformance": {
+      "title": "Quiz Performance by Topic",
+      "notAttempted": "Not attempted",
+      "stats": "{{count}} taken • {{average}}% avg"
+    },
+    "topicNames": {
+      "disasterPrep": "Disaster Prep",
+      "firstAid": "First Aid",
+      "fireSafety": "Fire Safety",
+      "severeWeather": "Weather",
+      "homeSecurity": "Security",
+      "travelSafety": "Travel"
+    },
+    "categoryBreakdown": {
+      "title": "Task Category Breakdown"
+    },
+    "quizInsights": {
+      "title": "Quiz Insights",
+      "topicsExplored": "Topics Explored",
+      "mostPracticed": "Most Practiced Topic",
+      "perfectScores": "Perfect Scores"
+    },
+    "auth": {
+      "title": "Sign In Required",
+      "subtitle": "Sign in to view your personalized stats and track your progress",
+      "button": "Sign In"
+    }
+  },
+  "badgesScreen": {
+    "title": "My Badges",
+    "yourAchievements": "Your Achievements",
+    "achievementsSummary": "Total: {{totalEarned}} of {{totalBadges}} Badges Earned",
+    "earnedDate": "Earned {{date}}",
+    "earnedCount": "{{earnedCount}} of {{totalCount}} earned",
+    "quickStats": "Quick Stats",
+    "statsTasks": "Tasks",
+    "statsQuizzes": "Quizzes",
+    "statsPerfect": "Perfect",
+    "statsBadges": "Badges",
+    "signInRequired": "Sign In Required",
+    "signInSubtitle": "Sign in to view your badges and track your progress",
+    "signInButton": "Sign In",
+    "progressMilestones": "Progress Milestones",
+    "quizAchievements": "Quiz Achievements",
+    "consistencyStreaks": "Consistency Streaks",
+    "specialAchievements": "Special Achievements",
+    "emptyState": "Complete tasks and take quizzes to start earning badges!",
+    "defaultUserInitial": "A"
+  },
+  "progressScreen": {
+    "title": "Progress Overview",
+    "defaultUserInitial": "G",
+    "overallPreparedness": "Overall Preparedness",
+    "preparednessMessage": {
+      "high": "Excellent work! You're well on your way to being prepared.",
+      "medium": "Great progress! Keep building your resilience.",
+      "low": "Every step counts. Let's get you prepared!"
+    },
+    "categoryProgress": "Category Progress",
+    "categorySummary": "{{completed}} of {{total}} items completed",
+    "actionButton": {
+      "fullyPrepared": "You are Fully Prepared!",
+      "advancedQuiz": "Take Advanced First Aid Quiz",
+      "continueLearning": "Continue First Aid Learning",
+      "startBasics": "Start First Aid Basics"
+    },
+    "actionSubtitle": {
+      "complete": "Congratulations on achieving 100% readiness! 🎉",
+      "incomplete": "Take the next step to improve your score."
+    }
+  }
 }

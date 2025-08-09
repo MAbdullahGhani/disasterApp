@@ -2,19 +2,18 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Dimensions,
-  Image,
+  I18nManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
 } from "react-native";
@@ -23,7 +22,7 @@ import { useNavigation } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-// Move InfoCard outside and memoize it to prevent recreation
+// Memoized InfoCard component
 const InfoCard = React.memo(
   ({
     icon,
@@ -33,34 +32,36 @@ const InfoCard = React.memo(
     isEditing,
     onInputChange,
     editable = true,
+    t,
   }: {
-    icon: any;
+    icon: keyof typeof Ionicons.glyphMap;
     title: string;
     value: string;
     field: string;
     isEditing: boolean;
     onInputChange: (field: string, value: string) => void;
     editable?: boolean;
+    t: (key: string, options?: any) => string;
   }) => (
     <ThemedView style={styles.card} lightColor="#FFFFFF" darkColor="#1C1C1E">
-      <ThemedView style={styles.infoHeader}>
+      <ThemedView style={[styles.infoHeader, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
         <Ionicons name={icon} size={20} color="#4ECDC4" />
-        <ThemedText style={styles.infoTitle}>{title}</ThemedText>
+        <ThemedText style={[styles.infoTitle, I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }]}>{title}</ThemedText>
       </ThemedView>
       {isEditing && editable ? (
         <ThemedInput
-          style={styles.input}
+          style={[styles.input, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}
           value={value}
           onChangeText={(text) => onInputChange(field, text)}
-          placeholder={`Enter ${title.toLowerCase()}`}
+          placeholder={t("enterPlaceholder", { title: title.toLowerCase() })}
           placeholderTextColor="#999"
           autoCorrect={false}
           returnKeyType="done"
           blurOnSubmit={false}
         />
       ) : (
-        <ThemedText style={styles.infoValue}>
-          {value || "Not provided"}
+        <ThemedText style={[styles.infoValue, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+          {value || t("notProvided")}
         </ThemedText>
       )}
     </ThemedView>
@@ -69,6 +70,7 @@ const InfoCard = React.memo(
 
 export default function ProfileScreen() {
   const { user, updateUserProfile, fetchUserProfile } = useAuth();
+  const { t, i18n } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
@@ -76,11 +78,11 @@ export default function ProfileScreen() {
     phone: "",
     location: "",
     emergencyContact: "",
+    profilePicture: user?.photoURL || "",
   });
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
-  // Load user profile data on component mount
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -104,10 +106,7 @@ export default function ProfileScreen() {
   }, [user, fetchUserProfile]);
 
   const handleInputChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -116,16 +115,16 @@ export default function ProfileScreen() {
       const result = await updateUserProfile(formData);
       if (result.success) {
         setIsEditing(false);
-        Alert.alert("Success", "Profile updated successfully");
+        Alert.alert(t("success"), t("profileUpdated"));
       } else {
-        Alert.alert("Error", result.error || "Failed to update profile");
+        Alert.alert(t("error"), result.error || t("profileUpdateFailed"));
       }
     } catch (error) {
-      Alert.alert("Error", "An error occurred while updating profile");
+      Alert.alert(t("error"), t("profileUpdateError"));
     } finally {
       setLoading(false);
     }
-  }, [formData, updateUserProfile]);
+  }, [formData, updateUserProfile, t]);
 
   const handleEditToggle = useCallback(() => {
     if (isEditing) {
@@ -141,48 +140,14 @@ export default function ProfileScreen() {
     }
   }, [navigation]);
 
-  const pickImage = useCallback(async () => {
-    try {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (permissionResult.granted === false) {
-        Alert.alert(
-          "Permission Required",
-          "Permission to access camera roll is required!"
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        setFormData((prev) => ({
-          ...prev,
-          profilePicture: imageUri,
-        }));
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image");
-    }
-  }, []);
-
-  // Memoize computed values to prevent unnecessary recalculations
   const userDisplayName = useMemo(() => {
     return (
       user?.displayName ||
       formData.displayName ||
       user?.email ||
-      "Anonymous User"
+      t("anonymousUser")
     );
-  }, [user?.displayName, formData.displayName, user?.email]);
+  }, [user?.displayName, formData.displayName, user?.email, t]);
 
   const profileImage = useMemo(
     () => (
@@ -201,142 +166,81 @@ export default function ProfileScreen() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ThemedView style={styles.container}>
-          {/* Header */}
-          <ThemedView style={styles.backButtonContainer}>
-            <TouchableOpacity onPress={handleGoBack}>
-              <Ionicons name="arrow-back" size={24} color="#aaa" />
+          <ThemedView style={[styles.header, { flexDirection: I18nManager.isRTL ? "row-reverse" : "row" }]}>
+            <TouchableOpacity style={[styles.headerButton, I18nManager.isRTL ? styles.headerButtonRTL : styles.headerButtonLTR]} onPress={handleGoBack}>
+              <Ionicons name={I18nManager.isRTL ? "arrow-forward" : "arrow-back"} size={24} color="#aaa" />
             </TouchableOpacity>
-          </ThemedView>
-
-          <ThemedView style={styles.header}>
             <TouchableOpacity style={styles.profileAvatar} disabled>
               {profileImage}
             </TouchableOpacity>
-            <ThemedView style={styles.profileInfo}>
+            <ThemedView style={[styles.profileInfo, { alignItems: I18nManager.isRTL ? 'flex-end' : 'flex-start' }]}>
               <ThemedText style={styles.profileName}>
                 {userDisplayName}
               </ThemedText>
               <ThemedText style={styles.profileStatus}>
-                {user?.isAnonymous ? "Guest Account" : "Verified User"}
+                {user?.isAnonymous ? t("guestAccount") : t("verifiedUser")}
               </ThemedText>
             </ThemedView>
           </ThemedView>
 
           <TouchableOpacity
-            style={styles.editButton}
+            style={[styles.editButton, I18nManager.isRTL ? styles.editButtonRTL : styles.editButtonLTR]}
             onPress={handleEditToggle}
             disabled={loading}
           >
-            <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} />
+            <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#fff"/>
           </TouchableOpacity>
 
           <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            removeClippedSubviews={false}
-            scrollEventThrottle={16}
           >
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
-                Personal Information
+              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                {t("personalInfo")}
               </ThemedText>
-
-              <InfoCard
-                icon="person-outline"
-                title="Display Name"
-                value={formData.displayName}
-                field="displayName"
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-              />
-
-              <InfoCard
-                icon="mail-outline"
-                title="Email"
-                value={formData.email}
-                field="email"
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-                editable={!user?.isAnonymous}
-              />
-
-              <InfoCard
-                icon="call-outline"
-                title="Phone"
-                value={formData.phone}
-                field="phone"
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-              />
-
-              <InfoCard
-                icon="location-outline"
-                title="Location"
-                value={formData.location}
-                field="location"
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-              />
+              <InfoCard icon="person-outline" title={t("displayName")} value={formData.displayName} field="displayName" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
+              <InfoCard icon="mail-outline" title={t("email")} value={formData.email} field="email" isEditing={isEditing} onInputChange={handleInputChange} editable={!user?.isAnonymous} t={t} />
+              <InfoCard icon="call-outline" title={t("phone")} value={formData.phone} field="phone" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
+              <InfoCard icon="location-outline" title={t("location")} value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
             </ThemedView>
 
-            {/* Emergency Information */}
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
-                Emergency Information
+              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                {t("emergencyInfo")}
               </ThemedText>
-
-              <InfoCard
-                icon="medical-outline"
-                title="Emergency Contact"
-                value={formData.emergencyContact}
-                field="emergencyContact"
-                isEditing={isEditing}
-                onInputChange={handleInputChange}
-              />
+              <InfoCard icon="medical-outline" title={t("emergencyContact")} value={formData.emergencyContact} field="emergencyContact" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
             </ThemedView>
 
-            {/* Account Statistics */}
             <ThemedView style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
-                Account Statistics
+              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+                {t("accountStats")}
               </ThemedText>
-
-              <ThemedView style={styles.statsContainer}>
+              <ThemedView style={[styles.statsContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
                 <ThemedView style={styles.statCard}>
                   <Ionicons name="shield-checkmark" size={24} color="#4ECDC4" />
                   <ThemedText style={styles.statNumber}>15</ThemedText>
-                  <ThemedText style={styles.statLabel}>
-                    Alerts Received
-                  </ThemedText>
+                  <ThemedText style={styles.statLabel}>{t("alertsReceived")}</ThemedText>
                 </ThemedView>
-
                 <ThemedView style={styles.statCard}>
                   <Ionicons name="location" size={24} color="#4ECDC4" />
                   <ThemedText style={styles.statNumber}>8</ThemedText>
-                  <ThemedText style={styles.statLabel}>
-                    Areas Monitored
-                  </ThemedText>
+                  <ThemedText style={styles.statLabel}>{t("areasMonitored")}</ThemedText>
                 </ThemedView>
               </ThemedView>
             </ThemedView>
 
-            {/* Actions */}
             <ThemedView style={styles.section}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={[styles.actionButton, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
                 <Ionicons name="download-outline" size={20} color="#4ECDC4" />
-                <ThemedText style={styles.actionText}>
-                  Download My Data
-                </ThemedText>
-                <Ionicons name="chevron-forward" size={16} color="#999" />
+                <ThemedText style={[styles.actionText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t("downloadMyData")}</ThemedText>
+                <Ionicons name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#999" />
               </TouchableOpacity>
-
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={[styles.actionButton, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
                 <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                <ThemedText style={[styles.actionText, { color: "#FF6B6B" }]}>
-                  Delete Account
-                </ThemedText>
-                <Ionicons name="chevron-forward" size={16} color="#999" />
+                <ThemedText style={[styles.actionText, { color: "#FF6B6B", textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t("deleteAccount")}</ThemedText>
+                <Ionicons name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#999" />
               </TouchableOpacity>
             </ThemedView>
           </ScrollView>
@@ -350,49 +254,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backButtonContainer: {
-    position: "absolute",
-    left: 16,
-    top: 16,
-    zIndex: 10,
-    marginTop: 15,
-  },
   header: {
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 20,
-    paddingHorizontal: 30,
-    flexDirection: "row",
+    paddingHorizontal: 20,
     alignItems: "center",
-    marginTop: 10,
+    position: 'relative',
+  },
+  headerButton: {
+    position: 'absolute',
+    top: 70,
+    zIndex: 10,
+  },
+  headerButtonLTR: {
+    left: 20,
+    top: 40,
+  },
+  headerButtonRTL: {
+    right: 20,
   },
   profileAvatar: {
     width: 60,
     height: 60,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 30,
+    backgroundColor: "rgba(78, 205, 196, 0.3)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
-    position: "relative",
+    marginHorizontal: 15,
     borderWidth: 2,
-    overflow: "hidden",
-  },
-  profileAvatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    borderColor: "#4ECDC4",
   },
   profileAvatarText: {
     fontSize: 32,
     fontWeight: "bold",
-  },
-  cameraIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 12,
-    padding: 4,
+    color: "#FFFFFF",
   },
   profileInfo: {
     flex: 1,
@@ -401,7 +296,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#4ECDC4",
@@ -409,12 +303,17 @@ const styles = StyleSheet.create({
   },
   editButton: {
     position: "absolute",
-    top: 50,
-    right: 20,
+    top: 60,
     backgroundColor: "#4ECDC4",
     borderRadius: 20,
     padding: 10,
     zIndex: 10,
+  },
+  editButtonLTR: {
+    right: 20,
+  },
+  editButtonRTL: {
+    left: 20,
   },
   actionButton: {
     flexDirection: "row",
@@ -422,19 +321,18 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 15,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
   },
   card: {
     borderRadius: 15,
     padding: 15,
     marginBottom: 12,
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
     elevation: 3,
@@ -442,7 +340,6 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 4,
   },
   profileStatus: {
     fontSize: 14,
@@ -453,16 +350,12 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 20,
+    paddingTop: 10,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 15,
-  },
-  infoCard: {
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
   },
   infoHeader: {
     flexDirection: "row",
@@ -472,7 +365,6 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: "600",
-    marginLeft: 8,
     textTransform: "capitalize",
   },
   infoValue: {
@@ -488,6 +380,8 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
   },
   statNumber: {
     fontSize: 24,
@@ -497,13 +391,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
     textAlign: "center",
   },
   actionText: {
     flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    marginLeft: 12,
+    marginHorizontal: 12,
   },
 });

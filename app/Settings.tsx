@@ -284,12 +284,13 @@ const styles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 16,
-    top: 60,
+    bottom: 60,
     zIndex: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
+    paddingTop: 10,
   },
   content: {
     flex: 1,

@@ -33,20 +33,29 @@ const LANGUAGES: Language[] = [
   { code: 'en', label: 'English', isRTL: false },
   { code: 'ur', label: 'Urdu (اردو)', isRTL: true },
   { code: 'es', label: 'Spanish (Español)', isRTL: false },
-  // Add more languages here
 ];
 
-// Key to store cached translations
 const TRANSLATIONS_CACHE_KEY = '@cached_translations';
+
+// --- Helper function to add a delay ---
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- API Fetching Logic with Chunking and Fallback ---
+const fetchWithMyMemory = async (text: string, langPair: string): Promise<string> => {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`MyMemory API Error: Status ${res.status}`);
+    const data = await res.json();
+    if (data.responseStatus !== 200) throw new Error(`MyMemory API Error: ${data.responseDetails}`);
+    return data.responseData.translatedText;
+};
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isVisible, onClose }) => {
   const { i18n, t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Function to fetch translations from LibreTranslate API
-  const fetchTranslations = async (targetLanguage: string): Promise<Record<string, string> | null> => {
+  const fetchTranslationsInChunks = async (targetLanguage: string): Promise<Record<string, string> | null> => {
     try {
-      // Check cache first
       const cached = await AsyncStorage.getItem(TRANSLATIONS_CACHE_KEY);
       const cachedTranslations = cached ? JSON.parse(cached) : {};
       if (cachedTranslations[targetLanguage]) {
@@ -54,58 +63,41 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isVisible, onClose 
         return cachedTranslations[targetLanguage];
       }
 
-      console.log(`Fetching ${targetLanguage} translations from API...`);
-      // The API expects a single string with newlines for batch translation
-      const stringToTranslate = Object.values(enTranslations).join('\n');
+      console.log(`Fetching ${targetLanguage} translations in chunks...`);
       
-      // Reverting to the libretranslate.de endpoint with robust error handling
-      const res = await fetch('https://libretranslate.de/translate', {
-        method: 'POST',
-        body: JSON.stringify({
-          q: stringToTranslate,
-          source: 'en',
-          target: targetLanguage,
-          format: 'text',
-        }),
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      });
-
-      // Robust check to ensure the response is valid JSON
-      const contentType = res.headers.get('content-type');
-      if (!res.ok || !contentType || !contentType.includes('application/json')) {
-        const errorText = await res.text(); // Read the response as text to see what it is (e.g., HTML error page)
-        console.error('API did not return JSON. Status:', res.status, 'Response:', errorText);
-        throw new Error(`API Error: Server returned a non-JSON response.`);
-      }
-      
-      const data = await res.json();
-      const translatedText = data.translatedText;
-
-      if (!translatedText || typeof translatedText !== 'string') {
-        console.error('Invalid translatedText format received from API:', data);
-        throw new Error('Invalid data format from translation API.');
-      }
-
-      const translatedValues = translatedText.split('\n');
       const keys = Object.keys(enTranslations);
-      
+      const values = Object.values(enTranslations);
       const newTranslations: Record<string, string> = {};
-      keys.forEach((key, index) => {
-        newTranslations[key] = translatedValues[index] || enTranslations[key as keyof typeof enTranslations]; // Fallback to English if translation fails
-      });
+      const chunkSize = 5; // Translate 5 words at a time
 
-      // Update cache
+      for (let i = 0; i < values.length; i += chunkSize) {
+        const chunk = values.slice(i, i + chunkSize);
+        const chunkKeys = keys.slice(i, i + chunkSize);
+        
+        const stringToTranslate = chunk.join('\n');
+        
+        console.log(`Translating chunk ${i / chunkSize + 1}...`);
+        const translatedChunkText = await fetchWithMyMemory(stringToTranslate, `en|${targetLanguage}`);
+        const translatedValues = translatedChunkText.split('\n');
+
+        translatedValues.forEach((translatedValue, index) => {
+          const originalKey = chunkKeys[index];
+          if (originalKey) {
+            newTranslations[originalKey] = translatedValue.trim() || chunk[index]; // Fallback to original
+          }
+        });
+
+        await sleep(500); // Wait for 500ms to avoid rate-limiting
+      }
+
       cachedTranslations[targetLanguage] = newTranslations;
       await AsyncStorage.setItem(TRANSLATIONS_CACHE_KEY, JSON.stringify(cachedTranslations));
 
       return newTranslations;
 
     } catch (error) {
-      console.error('Failed to fetch translations:', error);
-      Alert.alert('Error', 'Could not load translations. Please check your internet connection and try again.');
+      console.error("Failed to fetch translations:", error);
+      Alert.alert('Translation Error', 'Could not load translations. The service may be temporarily unavailable. Please try again later.');
       return null;
     }
   };
@@ -113,30 +105,24 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ isVisible, onClose 
   const handleLanguageChange = async (lang: Language) => {
     setLoading(true);
     
-    // If English is selected, no need to fetch
     if (lang.code === 'en') {
       i18n.addResourceBundle('en', 'translation', enTranslations, true, true);
     } else {
-      const translations = await fetchTranslations(lang.code);
+      const translations = await fetchTranslationsInChunks(lang.code);
       if (!translations) {
         setLoading(false);
-        return; // Stop if fetching failed
+        return;
       }
-      // Add the new translations to i18next
       i18n.addResourceBundle(lang.code, 'translation', translations, true, true);
     }
 
-    // Change the language
     await i18n.changeLanguage(lang.code);
 
-    // Handle RTL layout
     const currentIsRTL = I18nManager.isRTL;
     if (currentIsRTL !== lang.isRTL) {
       I18nManager.forceRTL(lang.isRTL);
-      // Reload the app for RTL changes to take effect
       await Updates.reloadAsync();
     } else {
-      // If RTL state doesn't change, no need to reload the whole app
       onClose();
     }
     
