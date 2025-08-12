@@ -11,7 +11,7 @@ const firebaseConfig = {
   storageBucket: "pakistan-disaster-ready.firebasestorage.app",
   messagingSenderId: "139120385098",
   appId: "1:139120385098:web:a4588bb4aa768f7e281ab3",
-  measurementId: "G-6MJD1GJJ1T",
+  measurementId: "G-6MJD1GJJ1T"
 };
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);

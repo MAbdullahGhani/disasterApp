@@ -67,9 +67,9 @@
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
-      "iosClientId": "139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com,",
+      "iosClientId": "139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com",
       "androidClientId": "139120385098-pem3i8hcsa2valicnjbj0k3ambe6fop2.apps.googleusercontent.com",
-      "webClientId": "139120385098-ue96roog2or9inthiu8fbia6cdl8a0ko.apps.googleusercontent.com",
+      "webClientId": "139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com",
       "router": {},
       "eas": {
         "projectId": "fdd0ee21-9313-44ae-850a-445938ce044d"

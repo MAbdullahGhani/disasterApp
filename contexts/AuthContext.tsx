@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [initializing, setInitializing] = useState<boolean>(true);
 
   const [request, response, promptAsync] = useAuthRequest({
-    clientId: '139120385098-bamg6hpod29t48v7a5efe0hd3ub7d9jh.apps.googleusercontent.com',
+    clientId: '139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com',
     iosClientId: '139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com',
     androidClientId: '139120385098-pem3i8hcsa2valicnjbj0k3ambe6fop2.apps.googleusercontent.com',
     responseType: ResponseType.IdToken,
