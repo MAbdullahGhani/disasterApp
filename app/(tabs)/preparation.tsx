@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProgress } from "@/contexts/useProgress";
 import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 

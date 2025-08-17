@@ -1,8 +1,8 @@
-// services/NotificationService.ts (Enhanced & Fixed Version)
-import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
-import { Platform } from "react-native";
+// services/NotificationService.ts - Fixed for Expo Go
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 const NOTIFICATION_STORAGE_KEY = "storedNotifications";
 
@@ -31,14 +31,11 @@ export interface NotificationData {
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const priority = notification.request.content.data?.priority || "medium";
-    const type = notification.request.content.data?.type || "info";
-
+    
     return {
-      // shouldShowAlert: true,
+      shouldShowAlert: true,
       shouldPlaySound: priority === "critical" || priority === "high",
       shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
     };
   },
 });
@@ -129,7 +126,7 @@ class NotificationService {
 
       try {
         const tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: "fdd0ee21-9313-44ae-850a-445938ce044d", // Replace with your actual project ID
+          projectId: "your-project-id-here", // You can get this from app.json/app.config.js
         });
         token = tokenData.data;
         this.expoPushToken = token;
@@ -189,7 +186,10 @@ class NotificationService {
           },
           categoryIdentifier: type,
         },
-        trigger: { seconds: 1, channelId },
+        trigger: { 
+          seconds: 1, 
+          channelId 
+        },
       });
 
       // Call callback if provided
@@ -459,7 +459,6 @@ class NotificationService {
 
             // Handle specific notification types
             if (data.type === "evacuation" && data.isEvacuation) {
-              // Handle evacuation notification tap
               console.log("Evacuation notification tapped");
             }
           }
@@ -470,6 +469,57 @@ class NotificationService {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
     });
+  }
+
+  // Schedule a delayed notification (useful for demo)
+  async scheduleDelayedNotification(
+    title: string,
+    body: string,
+    delaySeconds: number,
+    priority: "critical" | "high" | "medium" | "low" = "high",
+    type: NotificationData["type"] = "warning"
+  ) {
+    try {
+      const notificationData: NotificationData = {
+        id: `delayed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type,
+        title,
+        message: body,
+        timestamp: new Date().toISOString(),
+        read: false,
+        priority,
+        source: "system",
+      };
+
+      // Store notification for in-app display
+      await this.storeNotification(notificationData);
+
+      // Schedule the notification
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: this.getNotificationTitle(title, priority),
+          body,
+          sound: priority === "critical" || priority === "high" ? "default" : undefined,
+          data: {
+            notificationId: notificationData.id,
+            priority,
+            type,
+            timestamp: notificationData.timestamp,
+          },
+          categoryIdentifier: type,
+        },
+        trigger: { 
+          seconds: delaySeconds,
+          channelId: Platform.OS === 'android' ? priority : undefined
+        },
+      });
+
+      console.log(`Delayed notification scheduled for ${delaySeconds} seconds: ${title}`);
+      return notificationId;
+    } catch (error) {
+      console.error("Error scheduling delayed notification:", error);
+      return null;
+    }
   }
 
   // Legacy methods for backward compatibility
@@ -491,20 +541,7 @@ class NotificationService {
     body: string,
     seconds: number
   ) {
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          sound: "default",
-        },
-        trigger: { seconds },
-      });
-      return id;
-    } catch (error) {
-      console.error("Error scheduling reminder notification:", error);
-      return null;
-    }
+    return await this.scheduleDelayedNotification(title, body, seconds, "medium", "info");
   }
 
   async cancelNotification(notificationId: string) {
@@ -528,7 +565,6 @@ class NotificationService {
     const { status } = await Notifications.getPermissionsAsync();
     return status;
   }
-
 
   // Send push notification (requires server implementation)
   async sendPushNotification(
@@ -563,37 +599,6 @@ class NotificationService {
       console.error("Error sending push notification:", error);
       return null;
     }
-  }
-
-  // Schedule daily reminder
-  async scheduleDailyReminder(hour = 9, minute = 0) {
-    const trigger = {
-      hour,
-      minute,
-      repeats: true,
-    };
-
-    return await this.scheduleReminderNotification(
-      "🛡️ Safety Check-in",
-      "Take a few minutes to review your emergency preparedness today!",
-      0
-    );
-  }
-
-  // Schedule weekly progress reminder
-  async scheduleWeeklyProgressReminder() {
-    const trigger = {
-      weekday: 7, // Sunday
-      hour: 10,
-      minute: 0,
-      repeats: true,
-    };
-
-    return await this.scheduleReminderNotification(
-      "📊 Weekly Progress Review",
-      "Check your safety progress and complete more preparedness tasks!",
-      0
-    );
   }
 
   // Create test notifications for development

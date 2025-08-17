@@ -1,13 +1,15 @@
-import { ProgressProvider } from '@/contexts/useProgress'; // Add this import
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProgressProvider } from '@/contexts/useProgress';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import '../services/i18n';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useEffect } from 'react';
+import 'react-native-reanimated';
+import '../firebase/config'; // Add this BEFORE AuthProvider
+import '../services/i18n';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -18,13 +20,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      // When the fonts are loaded, hide the splash screen
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 
@@ -35,10 +35,10 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
-            <Stack.Screen name="AuthScreen" options={{ headerShown: false }}  />
-            <Stack.Screen name="Emergency" options={{ headerShown: false }}  />
-            <Stack.Screen name="Profile" options={{ headerShown: false }}  />
-            <Stack.Screen name="Settings" options={{ headerShown: false }}  />
+            <Stack.Screen name="AuthScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="Emergency" options={{ headerShown: false }} />
+            <Stack.Screen name="Profile" options={{ headerShown: false }} />
+            <Stack.Screen name="Settings" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

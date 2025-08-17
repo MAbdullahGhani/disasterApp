@@ -19,31 +19,18 @@
         "UIBackgroundModes": [
           "location",
           "background-processing",
-          "background-fetch",
-          "location",
-          "background-processing",
           "background-fetch"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "google-oauth",
+            "CFBundleURLSchemes": ["com.anonymous.disasterApp"]
+          }
         ]
       }
     },
-    "notification": {
-      "icon": "./assets/images/notification-icon.png",
-      "color": "#4ECDC4",
-      "androidMode": "default",
-      "androidCollapsedTitle": "#{unread_notifications} new alerts"
-    },
     "android": {
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "WAKE_LOCK",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "RECEIVE_BOOT_COMPLETED",
@@ -59,21 +46,24 @@
         "foregroundImage": "./assets/images/Pdr_logo.png"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.disasterApp"
+      "package": "com.anonymous.disasterApp",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "auth.expo.io"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
-    },
-    "extra": {
-      "iosClientId": "139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com",
-      "androidClientId": "139120385098-pem3i8hcsa2valicnjbj0k3ambe6fop2.apps.googleusercontent.com",
-      "webClientId": "139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com",
-      "router": {},
-      "eas": {
-        "projectId": "fdd0ee21-9313-44ae-850a-445938ce044d"
-      }
     },
     "plugins": [
       "expo-router",
@@ -105,9 +95,7 @@
           ]
         }
       ],
-      [
-        "expo-task-manager"
-      ],
+      "expo-task-manager",
       "expo-web-browser",
       "expo-secure-store",
       "expo-font",

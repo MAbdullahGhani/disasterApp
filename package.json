@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-firebase/app": "^23.0.0",
     "@react-native-firebase/firestore": "^23.0.0",
     "@react-native-firebase/messaging": "^23.0.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
@@ -22,14 +23,14 @@
     "d3-shape": "^3.2.0",
     "expo": "^53.0.20",
     "expo-application": "~6.1.5",
-    "expo-auth-session": "~6.2.1",
+    "expo-auth-session": "latest",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
     "expo-dev-client": "~5.2.4",
     "expo-device": "~7.1.4",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
-    "expo-image": "~2.3.2",
+    "expo-image": "~2.4.0",
     "expo-image-picker": "^16.1.4",
     "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.7",
@@ -44,7 +45,7 @@
     "expo-system-ui": "~5.0.10",
     "expo-task-manager": "~13.1.6",
     "expo-updates": "~0.28.17",
-    "expo-web-browser": "~14.2.0",
+    "expo-web-browser": "latest",
     "fast-xml-parser": "^5.2.5",
     "firebase": "^12.1.0",
     "firebase-admin": "^13.4.0",
@@ -54,7 +55,6 @@
     "react-dom": "19.0.0",
     "react-i18next": "^15.6.1",
     "react-native": "0.79.5",
-    "react-native-geolocation-service": "^5.3.1",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-reanimated": "~3.17.4",
@@ -75,5 +75,12 @@
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  }
 }
