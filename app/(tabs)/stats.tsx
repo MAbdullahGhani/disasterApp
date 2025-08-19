@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
+import { useRTL } from '@/hooks/useRTL';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -24,6 +25,7 @@ const { width } = Dimensions.get('window');
 
 export default function StatsScreen() {
     const { t, i18n } = useTranslation();
+    const { isRTL, getFlexDirection } = useRTL();
     const colorScheme = useColorScheme();
     const { isAuthenticated, user } = useAuth();
     const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -106,7 +108,7 @@ export default function StatsScreen() {
     const ProgressBreakdownChart = () => {
         const themeColors = getThemeColors();
         const { checklistProgress, quizPerformance, badgeAchievement } = progressStats;
-        
+
         const data = [
             { label: t('statsScreen.progressBreakdown.tasks'), value: checklistProgress, color: '#FF6B35' },
             { label: t('statsScreen.progressBreakdown.quizzes'), value: quizPerformance, color: '#4ECDC4' },
@@ -135,7 +137,7 @@ export default function StatsScreen() {
     const BadgeShowcase = () => {
         const themeColors = getThemeColors();
         const recentBadges = earnedBadges.slice(-3);
-        
+
         return (
             <ThemedView style={[styles.badgeShowcase, { backgroundColor: themeColors.cardBackground }]}>
                 <View style={styles.badgeHeader}>
@@ -279,9 +281,15 @@ export default function StatsScreen() {
         return (
             <>
                 <ThemedView style={[styles.header, { borderBottomColor: themeColors.borderColor }]}>
-                    <ThemedText type="title">{t('statsScreen.header')}</ThemedText>
-                    <View style={styles.headerRight}>
-                       <TouchableOpacity style={{ marginLeft: 15 }}  onPress={() => setNotiSidebarVisible(true)}><Ionicons name="notifications-outline" size={24} color="#333" /></TouchableOpacity>
+                    <ThemedText type="title" textAlign="left">{t('statsScreen.header')}</ThemedText>
+                    <ThemedView
+                        style={styles.headerRight}
+                        flexDirection="row"
+                        disableRTL={false}
+                    >
+                        <TouchableOpacity style={{ marginLeft: 15 }} onPress={() => setNotiSidebarVisible(true)}>
+                            <Ionicons name="notifications-outline" size={24} color="#333" />
+                        </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.profileIcon}
                             onPress={() => setSidebarVisible(true)}
@@ -290,7 +298,7 @@ export default function StatsScreen() {
                                 {getUserDisplayName()}
                             </ThemedText>
                         </TouchableOpacity>
-                    </View>
+                    </ThemedView>
                 </ThemedView>
 
                 <ThemedView style={styles.section}>
@@ -339,8 +347,7 @@ export default function StatsScreen() {
                         icon="shield-checkmark"
                         title={t('statsScreen.statCards.activePlans')}
                         value={activePlans}
-                        color="#8B5CF6"
-                    />
+                        color="#8B5CF6" subtitle={undefined}                    />
                 </View>
 
                 <View style={styles.section}>
@@ -415,7 +422,7 @@ export default function StatsScreen() {
             </View>
 
             {!isAuthenticated && <AuthOverlay />}
-            
+
             <NotificationDrawer visible={notiSidebarVisible} onClose={() => setNotiSidebarVisible(false)} />
             <Sidebar
                 visible={sidebarVisible}

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PDR",
+    "name": "PDR - Disaster Ready",
     "owner": "abdullah797",
     "slug": "disasterApp",
     "version": "1.0.0",
@@ -11,7 +11,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.disasterApp",
+      "bundleIdentifier": "com.abdullah797.disasterapp",
+      "buildNumber": "1.0.1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
@@ -23,8 +24,16 @@
         ],
         "CFBundleURLTypes": [
           {
-            "CFBundleURLName": "google-oauth",
-            "CFBundleURLSchemes": ["com.anonymous.disasterApp"]
+            "CFBundleURLName": "google-signin",
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7"
+            ]
+          },
+          {
+            "CFBundleURLName": "expo-auth-session", 
+            "CFBundleURLSchemes": [
+              "disasterapp"
+            ]
           }
         ]
       }
@@ -43,20 +52,25 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Pdr_logo.png"
+        "foregroundImage": "./assets/images/Pdr_logo.png",
+        "backgroundColor": "#FFFFFF"
       },
+      "icon": "./assets/images/Pdr_logo.png",
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.disasterApp",
+      "package": "com.abdullah797.disasterapp",
+      "versionCode": 2,
       "intentFilters": [
         {
           "action": "VIEW",
           "data": [
             {
-              "scheme": "https",
-              "host": "auth.expo.io"
+              "scheme": "disasterapp"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -66,6 +80,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7"
+        }
+      ],
       "expo-router",
       [
         "expo-location",
@@ -82,17 +102,15 @@
         {
           "image": "./assets/images/Pdr_logo.png",
           "imageWidth": 200,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#4ECDC4",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "color": "#4ECDC4"
         }
       ],
       "expo-task-manager",
@@ -104,9 +122,15 @@
     "experiments": {
       "typedRoutes": true
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.1",
     "updates": {
       "url": "https://u.expo.dev/fdd0ee21-9313-44ae-850a-445938ce044d"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fdd0ee21-9313-44ae-850a-445938ce044d"
+      }
     }
   }
 }

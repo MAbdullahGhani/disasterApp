@@ -6,11 +6,13 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { I18nManager } from 'react-native';
 import 'react-native-reanimated';
 import '../firebase/config'; // Add this BEFORE AuthProvider
 import '../services/i18n';
 
 SplashScreen.preventAutoHideAsync();
+I18nManager.allowRTL(true);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

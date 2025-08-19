@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FirebaseApp, getApps, initializeApp } from "firebase/app";
-import { Auth, getReactNativePersistence, initializeAuth } from "firebase/auth";
+import { Auth, getAuth, getReactNativePersistence, initializeAuth } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7SNGXHiglsIkj9EdL6D5pWhMmYKWA1MA",
@@ -27,17 +28,39 @@ if (getApps().length === 0) {
   app = getApps()[0];
 }
 
-// Initialize Auth with AsyncStorage persistence
+// Initialize Auth with platform-specific configuration
 console.log('Initializing Firebase Auth...');
-auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
-console.log('Firebase Auth initialized');
+console.log('Platform:', Platform.OS);
+
+try {
+  if (Platform.OS === 'web') {
+    // Use default web auth for browser
+    console.log('Using web auth (browser)');
+    auth = getAuth(app);
+  } else {
+    // Use React Native auth with AsyncStorage persistence for mobile
+    console.log('Using React Native auth with persistence');
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  }
+  console.log('Firebase Auth initialized successfully');
+} catch (error) {
+  console.error('Auth initialization failed:', error);
+  // Fallback to default auth if there's an issue
+  console.log('Falling back to default auth');
+  auth = getAuth(app);
+}
 
 // Initialize Firestore
 console.log('Initializing Firestore...');
-db = getFirestore(app);
-console.log('Firestore initialized');
+try {
+  db = getFirestore(app);
+  console.log('Firestore initialized successfully');
+} catch (error) {
+  console.error('Firestore initialization failed:', error);
+  throw error;
+}
 
 export { app, auth, db };
 export default app;
