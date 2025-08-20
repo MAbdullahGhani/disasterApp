@@ -7,13 +7,15 @@ import { useProgress } from "@/contexts/useProgress";
 import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabTwoScreen() {
   const { checklist, overallProgress, toggleChecklistItem } = useProgress();
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
   const getUserDisplayName = () => {
@@ -24,7 +26,7 @@ export default function TabTwoScreen() {
   };
   const renderHeader = () => (
     <ThemedView style={styles.header}>
-      <ThemedText type="title">Preparation Checklist</ThemedText>
+      <ThemedText type="title">{t("title")}</ThemedText>
       <View style={styles.headerRight}>
         <TouchableOpacity
           style={{ marginLeft: 15 }}
@@ -48,14 +50,14 @@ export default function TabTwoScreen() {
     <ThemedView style={styles.progressSection}>
       <ThemedView style={styles.progressCard}>
         <ThemedText type="subtitle" style={styles.progressTitle}>
-          Overall Progress
+          {t("overallProgress")}
         </ThemedText>
         <ThemedText style={styles.progressSubtitle}>
           {overallProgress > 80
-            ? "You're nearly disaster ready! Great work!"
+            ? t("progressMessageHigh")
             : overallProgress > 50
-            ? "You're on track to becoming disaster ready!"
-            : "Start building your emergency preparedness!"}
+            ? t("progressMessageMedium")
+            : t("progressMessageLow")}
         </ThemedText>
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
@@ -78,10 +80,10 @@ export default function TabTwoScreen() {
     if (items.length === 0) return null;
 
     const categoryTitles = {
-      essentials: "Emergency Essentials",
-      evacuation: "Evacuation & Planning",
-      communication: "Communication Strategy",
-      firstaid: "First Aid Skills",
+      essentials: t("categoryEssentials"),
+      evacuation: t("categoryEvacuation"),
+      communication: t("categoryCommunication"),
+      firstaid: t("categoryFirstAid"),
     };
 
     const categoryTitle = categoryTitles[category];
@@ -155,12 +157,11 @@ export default function TabTwoScreen() {
             <View style={styles.actionButtonText}>
               <ThemedText type="subtitle" style={{ color: "#FFFFFF" }}>
                 {overallProgress === 100
-                  ? "Fully Prepared!"
-                  : "Keep Building Resilience!"}
+                  ? t("actionButtonFullyPrepared")
+                  : t("actionButtonKeepBuilding")}
               </ThemedText>
               <ThemedText style={styles.actionButtonSubtitle}>
-                {completedItems} of {totalItems} items completed. Every step
-                counts!
+                {t("actionButtonSubtitle", { completedItems, totalItems })}
               </ThemedText>
             </View>
           </LinearGradient>
@@ -194,6 +195,7 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... your existing styles remain unchanged
   container: {
     flex: 1,
   },
@@ -203,7 +205,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-
   },
   headerRight: {
     flexDirection: "row",

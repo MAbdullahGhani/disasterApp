@@ -6,8 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProgress } from "@/contexts/useProgress";
 import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ScrollView,
   StyleSheet,
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Interfaces remain the same...
 interface QuizQuestion {
   id: string;
   question: string;
@@ -40,10 +41,86 @@ interface QuizState {
   showResult: boolean;
 }
 
+// Language-Neutral Structure of Quiz Data
+const quizTopicsStructure = [
+  {
+    id: "disaster-prep",
+    icon: "shield-checkmark",
+    color: "#FF6B35",
+    questions: [
+      { id: "q1", correctAnswer: 1 },
+      { id: "q2", correctAnswer: 2 },
+      { id: "q3", correctAnswer: 1 },
+      { id: "q4", correctAnswer: 1 },
+      { id: "q5", correctAnswer: 0 },
+    ],
+  },
+  {
+    id: "first-aid",
+    icon: "medical",
+    color: "#E74C3C",
+    questions: [
+      { id: "q1", correctAnswer: 1 },
+      { id: "q2", correctAnswer: 0 },
+      { id: "q3", correctAnswer: 2 },
+      { id: "q4", correctAnswer: 2 },
+      { id: "q5", correctAnswer: 2 },
+    ],
+  },
+  {
+    id: "fire-safety",
+    icon: "flame",
+    color: "#FF4444",
+    questions: [
+      { id: "q1", correctAnswer: 2 },
+      { id: "q2", correctAnswer: 2 },
+      { id: "q3", correctAnswer: 1 },
+      { id: "q4", correctAnswer: 2 },
+      { id: "q5", correctAnswer: 1 },
+    ],
+  },
+  {
+    id: "severe-weather",
+    icon: "thunderstorm",
+    color: "#3498DB",
+    questions: [
+      { id: "q1", correctAnswer: 2 },
+      { id: "q2", correctAnswer: 1 },
+      { id: "q3", correctAnswer: 2 },
+      { id: "q4", correctAnswer: 1 },
+      { id: "q5", correctAnswer: 2 },
+    ],
+  },
+  {
+    id: "home-security",
+    icon: "home",
+    color: "#9B59B6",
+    questions: [
+      { id: "q1", correctAnswer: 0 },
+      { id: "q2", correctAnswer: 1 },
+      { id: "q3", correctAnswer: 1 },
+      { id: "q4", correctAnswer: 1 },
+      { id: "q5", correctAnswer: 2 },
+    ],
+  },
+  {
+    id: "travel-safety",
+    icon: "airplane",
+    color: "#F39C12",
+    questions: [
+      { id: "q1", correctAnswer: 1 },
+      { id: "q2", correctAnswer: 2 },
+      { id: "q3", correctAnswer: 1 },
+      { id: "q4", correctAnswer: 1 },
+      { id: "q5", correctAnswer: 1 },
+    ],
+  },
+];
+
 export default function QuizScreen() {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
-  const { addQuizScore, getQuizScoreForTopic, addTopicQuizScore } =
-    useProgress();
+  const { addTopicQuizScore, getQuizScoreForTopic } = useProgress();
   const [quizState, setQuizState] = useState<QuizState>({
     currentQuestion: 0,
     selectedAnswer: null,
@@ -55,390 +132,31 @@ export default function QuizScreen() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [showTopicSelection, setShowTopicSelection] = useState(true);
   const [isLearningMode, setIsLearningMode] = useState(false);
-  const navigation = useNavigation();
-  const { isAuthenticated, user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
-  const [quizTopics] = useState<QuizTopic[]>([
-    {
-      id: "disaster-prep",
-      title: "Disaster Preparedness",
-      description: "Essential knowledge for emergency situations",
-      icon: "shield-checkmark",
-      color: "#FF6B35",
-      questions: [
-        {
-          id: "1",
-          question:
-            'What is the primary purpose of a "Go-Bag" or "Bug-Out Bag" in disaster preparedness?',
-          options: [
-            "To store non-perishable food for long-term survival.",
-            "To provide essential supplies for the first 72 hours during an evacuation.",
-            "To keep important documents safe during an emergency.",
-            "To carry tools for repairing damaged infrastructure.",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "2",
-          question: "During an earthquake, what is the safest action to take?",
-          options: [
-            "Run outside immediately",
-            "Stand in a doorway",
-            "Drop, Cover, and Hold On",
-            "Get under a bed",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "3",
-          question:
-            "How much water should you store per person per day for emergency preparedness?",
-          options: [
-            "1/2 gallon (2 liters)",
-            "1 gallon (4 liters)",
-            "2 gallons (8 liters)",
-            "3 gallons (12 liters)",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "4",
-          question:
-            "What should you do if caught in a flash flood while driving?",
-          options: [
-            "Drive through the water quickly",
-            "Turn around and find an alternate route",
-            "Stay in the car and wait",
-            "Drive slowly through the water",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "5",
-          question:
-            "In case of a fire emergency, what is the most important rule?",
-          options: [
-            "Stay low and crawl under smoke",
-            "Use elevators to evacuate quickly",
-            "Open windows for fresh air",
-            "Gather personal belongings first",
-          ],
-          correctAnswer: 0,
-        },
-      ],
-    },
-    {
-      id: "first-aid",
-      title: "First Aid Basics",
-      description: "Life-saving first aid techniques and procedures",
-      icon: "medical",
-      color: "#E74C3C",
-      questions: [
-        {
-          id: "1",
-          question:
-            "What is the correct ratio of chest compressions to rescue breaths in adult CPR?",
-          options: ["15:2", "30:2", "5:1", "10:2"],
-          correctAnswer: 1,
-        },
-        {
-          id: "2",
-          question: "How should you treat a severe bleeding wound?",
-          options: [
-            "Apply direct pressure and elevate if possible",
-            "Apply a tourniquet immediately",
-            "Clean the wound with alcohol first",
-            "Remove any embedded objects",
-          ],
-          correctAnswer: 0,
-        },
-        {
-          id: "3",
-          question:
-            "What is the first step in treating someone who is choking but still conscious?",
-          options: [
-            "Perform abdominal thrusts immediately",
-            "Give back blows between the shoulder blades",
-            "Encourage them to cough forcefully",
-            "Call emergency services first",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "4",
-          question: "How should you treat a burn from hot liquid?",
-          options: [
-            "Apply ice directly to the burn",
-            "Use butter or oil on the burn",
-            "Cool with cold running water for 10-20 minutes",
-            "Pop any blisters that form",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "5",
-          question: "What should you do if someone is having a seizure?",
-          options: [
-            "Hold them down to prevent movement",
-            "Put something in their mouth to prevent tongue biting",
-            "Time the seizure and keep them safe from injury",
-            "Give them water to prevent dehydration",
-          ],
-          correctAnswer: 2,
-        },
-      ],
-    },
-    {
-      id: "fire-safety",
-      title: "Fire Safety",
-      description: "Prevention and response to fire emergencies",
-      icon: "flame",
-      color: "#FF4444",
-      questions: [
-        {
-          id: "1",
-          question: "How often should you test smoke alarm batteries?",
-          options: [
-            "Once a year",
-            "Every 6 months",
-            "Monthly",
-            "Only when they beep",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "2",
-          question:
-            "What type of fire extinguisher should be used on electrical fires?",
-          options: [
-            "Water-based extinguisher",
-            "Foam extinguisher",
-            "CO2 or dry powder extinguisher",
-            "Any type will work",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "3",
-          question: "If your clothes catch fire, what should you do?",
-          options: [
-            "Run to get help",
-            "Stop, Drop, and Roll",
-            "Use water to put it out",
-            "Remove the burning clothes quickly",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "4",
-          question:
-            "What is the recommended evacuation time for a typical house fire?",
-          options: ["10 minutes", "5 minutes", "2-3 minutes", "30 seconds"],
-          correctAnswer: 2,
-        },
-        {
-          id: "5",
-          question: "Before opening a door during a fire, you should:",
-          options: [
-            "Open it quickly to check for fire",
-            "Feel the door handle and door for heat",
-            "Call out to see if anyone responds",
-            "Look for smoke under the door only",
-          ],
-          correctAnswer: 1,
-        },
-      ],
-    },
-    {
-      id: "severe-weather",
-      title: "Severe Weather",
-      description: "Staying safe during extreme weather conditions",
-      icon: "thunderstorm",
-      color: "#3498DB",
-      questions: [
-        {
-          id: "1",
-          question:
-            "During a tornado warning, where is the safest place to shelter?",
-          options: [
-            "Upper floor of a building",
-            "Near windows to watch for the tornado",
-            "Lowest floor, interior room, away from windows",
-            "In a vehicle driving away from the tornado",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "2",
-          question: "What wind speed defines a hurricane as Category 1?",
-          options: ["39-73 mph", "74-95 mph", "96-110 mph", "111-129 mph"],
-          correctAnswer: 1,
-        },
-        {
-          id: "3",
-          question: "If caught outside during a lightning storm, you should:",
-          options: [
-            "Lie flat on the ground",
-            "Stand under a tall tree",
-            "Crouch low with feet together, avoiding metal objects",
-            "Keep moving to avoid being a target",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "4",
-          question: "What is the most dangerous aspect of a hurricane?",
-          options: [
-            "High winds",
-            "Storm surge flooding",
-            "Heavy rainfall",
-            "Lightning",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "5",
-          question:
-            "How much advance warning do tornado watches typically provide?",
-          options: ["15-30 minutes", "1-2 hours", "4-8 hours", "12-24 hours"],
-          correctAnswer: 2,
-        },
-      ],
-    },
-    {
-      id: "home-security",
-      title: "Home Security",
-      description: "Protecting your home and family from threats",
-      icon: "home",
-      color: "#9B59B6",
-      questions: [
-        {
-          id: "1",
-          question:
-            "What is the most effective way to secure sliding glass doors?",
-          options: [
-            "Install a security bar in the track",
-            "Use only the built-in lock",
-            "Place a chair against the door",
-            "Install curtains for privacy",
-          ],
-          correctAnswer: 0,
-        },
-        {
-          id: "2",
-          question: "When should you change your locks?",
-          options: [
-            "Only if they break",
-            "After moving to a new home",
-            "Every 5 years",
-            "Never, if they work fine",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "3",
-          question:
-            "What should you do if you think someone is trying to break into your home?",
-          options: [
-            "Investigate the noise yourself",
-            "Call emergency services and stay in a secure room",
-            "Turn on all the lights",
-            "Go outside to confront them",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "4",
-          question: "How can you make your home appear occupied while away?",
-          options: [
-            "Leave all lights on continuously",
-            "Use timers for lights and consider a house sitter",
-            "Park a car in the driveway",
-            "Leave the TV on loudly",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "5",
-          question:
-            "What information should you never give to strangers at your door?",
-          options: [
-            "Your name",
-            "The time of day",
-            "Whether you're home alone or family schedule",
-            "The weather",
-          ],
-          correctAnswer: 2,
-        },
-      ],
-    },
-    {
-      id: "travel-safety",
-      title: "Travel Safety",
-      description: "Staying safe while traveling and in unfamiliar places",
-      icon: "airplane",
-      color: "#F39C12",
-      questions: [
-        {
-          id: "1",
-          question: "What should you do before traveling to a new country?",
-          options: [
-            "Pack as much as possible",
-            "Research local laws, customs, and safety conditions",
-            "Exchange all your money immediately",
-            "Book the cheapest accommodation available",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "2",
-          question: "How should you carry important documents while traveling?",
-          options: [
-            "Keep originals with you at all times",
-            "Leave them in your hotel room",
-            "Make copies and store originals separately",
-            "Email them to yourself only",
-          ],
-          correctAnswer: 2,
-        },
-        {
-          id: "3",
-          question:
-            "If you feel you're being followed while traveling, you should:",
-          options: [
-            "Confront the person directly",
-            "Go to a crowded, well-lit public place",
-            "Return to your hotel immediately",
-            "Take photos of the person",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "4",
-          question: "What's the safest way to use ATMs while traveling?",
-          options: [
-            "Use any ATM for convenience",
-            "Use ATMs inside banks or hotels when possible",
-            "Always use street-side ATMs",
-            "Carry large amounts of cash instead",
-          ],
-          correctAnswer: 1,
-        },
-        {
-          id: "5",
-          question: "When using public Wi-Fi while traveling, you should:",
-          options: [
-            "Access all your accounts normally",
-            "Avoid sensitive transactions and use a VPN if possible",
-            "Only check social media",
-            "Share the connection with other travelers",
-          ],
-          correctAnswer: 1,
-        },
-      ],
-    },
-  ]);
+  // Dynamically create translated quiz topics
+  const quizTopics: QuizTopic[] = useMemo(() => {
+    return quizTopicsStructure.map((topic) => ({
+      id: topic.id,
+      icon: topic.icon,
+      color: topic.color,
+      title: t(`topics.${topic.id}.title`),
+      description: t(`topics.${topic.id}.description`),
+      questions: topic.questions.map((q, index) => ({
+        id: (index + 1).toString(),
+        question: t(`topics.${topic.id}.questions.${q.id}.question`, {
+          returnObjects: true,
+        }),
+        // vvv THIS IS THE FIX vvv
+        options: t(`topics.${topic.id}.questions.${q.id}.options`, {
+          returnObjects: true,
+        }),
+        // ^^^ THIS IS THE FIX ^^^
+        correctAnswer: q.correctAnswer,
+      })),
+    }));
+  }, [t]); // Add language dependency here if it changes during runtime
 
   // Get dynamic colors based on theme
   const getThemeColors = () => {
@@ -548,7 +266,6 @@ export default function QuizScreen() {
         selectedTopic &&
         !isLearningMode
       ) {
-        addQuizScore(percentage);
         addTopicQuizScore(selectedTopic, percentage);
         setResultSubmitted(true);
       }
@@ -569,24 +286,27 @@ export default function QuizScreen() {
           />
           <ThemedText type="title" style={styles.resultTitle}>
             {isLearningMode
-              ? "Learning Complete!"
-              : isGoodScore
-              ? "Great Job!"
-              : "Keep Learning!"}
+              ? t("ui.resultLearningComplete")
+              : percentage >= 70
+              ? t("ui.resultGreatJob")
+              : t("ui.resultKeepLearning")}
           </ThemedText>
           <ThemedText style={styles.topicTitle}>{topic?.title}</ThemedText>
           {!isLearningMode && (
             <>
               <ThemedText style={styles.resultScore}>
-                You scored {quizState.score} out of {questions.length}
+                {t("ui.resultScoreText", {
+                  score: quizState.score,
+                  total: questions.length,
+                })}
               </ThemedText>
               <ThemedText
                 style={[
                   styles.resultPercentage,
-                  { color: isGoodScore ? "#4CAF50" : "#FF9800" },
+                  { color: percentage >= 70 ? "#4CAF50" : "#FF9800" },
                 ]}
               >
-                {percentage}% Correct
+                {t("ui.resultPercentageText", { percentage })}
               </ThemedText>
             </>
           )}
@@ -594,30 +314,30 @@ export default function QuizScreen() {
             <ThemedText
               style={[
                 styles.learningCompleteText,
-                { color: themeColors.mutedText },
+                { color: getThemeColors().mutedText },
               ]}
             >
-              You've reviewed all the correct answers for this topic.
+              {t("ui.resultLearningCompleteDescription")}
             </ThemedText>
           )}
           <View style={styles.resultButtons}>
             <TouchableOpacity style={styles.retryButton} onPress={resetQuiz}>
               <ThemedText style={styles.retryButtonText}>
-                Retake Quiz
+                {t("ui.retakeButton")}
               </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.backButton} onPress={backToTopics}>
               <ThemedText style={styles.backButtonText}>
-                Choose New Topic
+                {t("ui.newTopicButton")}
               </ThemedText>
             </TouchableOpacity>
-            {showLearnButton && !isLearningMode && (
+            {percentage < 60 && !isLearningMode && (
               <TouchableOpacity
                 style={styles.learnButton}
                 onPress={startLearningMode}
               >
                 <ThemedText style={styles.learnButtonText}>
-                  Learn Topic
+                  {t("ui.learnTopicButton")}
                 </ThemedText>
               </TouchableOpacity>
             )}
@@ -684,13 +404,16 @@ export default function QuizScreen() {
           </View>
           <View style={styles.topicStats}>
             <ThemedText
-              style={[styles.questionCount, { color: themeColors.mutedText }]}
+              style={[
+                styles.questionCount,
+                { color: getThemeColors().mutedText },
+              ]}
             >
-              {topic.questions.length} Questions
+              {t("ui.questionCount", { count: topic.questions.length })}
             </ThemedText>
             {bestScore !== null && (
               <ThemedText style={[styles.bestScore, { color: topic.color }]}>
-                Best: {bestScore}%
+                {t("ui.bestScore", { score: bestScore })}
               </ThemedText>
             )}
           </View>
@@ -729,7 +452,7 @@ export default function QuizScreen() {
               { borderBottomColor: themeColors.borderColor },
             ]}
           >
-            <ThemedText type="title">Safety Quizes</ThemedText>
+            <ThemedText type="title">{t("ui.mainTitle")}</ThemedText>
             <View style={styles.headerRight}>
               <TouchableOpacity
                 style={{ marginLeft: 15 }}
@@ -750,20 +473,19 @@ export default function QuizScreen() {
 
           <ThemedView style={styles.topicSelection}>
             <ThemedText type="subtitle" style={styles.selectionTitle}>
-              Choose a Topic
+              {t("ui.chooseTopicTitle")}
             </ThemedText>
             <ThemedText
               style={[
                 styles.selectionSubtitle,
-                { color: themeColors.mutedText },
+                { color: getThemeColors().mutedText },
               ]}
             >
-              Test your knowledge across different safety areas
+              {t("ui.chooseTopicSubtitle")}
             </ThemedText>
             {!isAuthenticated && (
               <ThemedText style={styles.freeTrialText}>
-                🎯 Try your first quiz without logging in! Sign up to unlock all
-                topics.
+                {t("ui.freeTrialText")}
               </ThemedText>
             )}
           </ThemedView>
@@ -776,31 +498,24 @@ export default function QuizScreen() {
 
           {!isAuthenticated && (
             <View style={styles.signupPrompt}>
-              <ThemedView
-                style={[
-                  styles.signupCard,
-                  { backgroundColor: themeColors.cardBackground },
-                ]}
-              >
-                <Ionicons name="star" size={40} color="#FF9800" />
+              <ThemedView>
                 <ThemedText type="subtitle" style={styles.signupTitle}>
-                  Unlock All Quizzes
+                  {t("ui.unlockTitle")}
                 </ThemedText>
                 <ThemedText
                   style={[
                     styles.signupDescription,
-                    { color: themeColors.mutedText },
+                    { color: getThemeColors().mutedText },
                   ]}
                 >
-                  Get access to all safety topics, track your progress, and earn
-                  achievements!
+                  {t("ui.unlockDescription")}
                 </ThemedText>
                 <TouchableOpacity
                   style={styles.signupButton}
                   onPress={() => router.push("AuthScreen")}
                 >
                   <ThemedText style={styles.signupButtonText}>
-                    Sign Up to Continue
+                    {t("ui.signupButton")}
                   </ThemedText>
                 </TouchableOpacity>
               </ThemedView>
@@ -848,7 +563,9 @@ export default function QuizScreen() {
             />
           </TouchableOpacity>
           <ThemedText type="title">
-            {isLearningMode ? `Learn ${topic?.title}` : `${topic?.title} Quiz`}
+            {isLearningMode
+              ? t("ui.learnHeader", { topicTitle: topic?.title })
+              : t("ui.quizHeader", { topicTitle: topic?.title })}
           </ThemedText>
           <View style={{ width: 24 }} />
         </ThemedView>
@@ -870,7 +587,7 @@ export default function QuizScreen() {
                     <ThemedText
                       style={[styles.learningModeText, { color: "#4CAF50" }]}
                     >
-                      Learning Mode
+                      {t("ui.learningMode")}
                     </ThemedText>
                   </View>
                 )}
@@ -880,11 +597,17 @@ export default function QuizScreen() {
                     { color: themeColors.mutedText },
                   ]}
                 >
-                  Question {quizState.currentQuestion + 1}/{questions.length}
+                  {t("ui.questionProgress", {
+                    current: quizState.currentQuestion + 1,
+                    total: questions.length,
+                  })}
                 </ThemedText>
                 <ThemedText style={styles.questionText}>
                   {currentQuestion?.question}
                 </ThemedText>
+                {/* <ThemedText style={styles.submitButtonText}>
+                  {isLearningMode ? t("ui.nextButton") : t("ui.submitButton")}
+                </ThemedText> */}
               </ThemedView>
             </ThemedView>
 

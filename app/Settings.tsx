@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import LanguageSelector from "../components/LanguageSelector";
+
 // Define the shape of the settings state
 interface SettingsState {
   notifications: boolean;
@@ -45,12 +46,14 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
 
-  const currentLanguage: string =
-    {
-      en: t("english"),
-      ur: t("urdu"),
-      es: t("spanish"),
-    }[i18n.language] || t("english");
+  // Get current language display name
+  const getCurrentLanguageDisplay = () => {
+    const languageNames = {
+      en: "English",
+      ur: "اردو (Urdu)",
+    };
+    return languageNames[i18n.language] || "English";
+  };
 
   const getThemeColors = () => {
     const isDark = colorScheme === "dark";
@@ -58,6 +61,7 @@ export default function SettingsScreen() {
       iconColor: isDark ? "#FFFFFF" : "#333333",
     };
   };
+  
   const themeColors = getThemeColors();
 
   const [settings, setSettings] = useState<SettingsState>({
@@ -104,9 +108,17 @@ export default function SettingsScreen() {
           },
         ]}
       >
-        <ThemedText style={styles.settingTitle}>{title}</ThemedText>
+        <ThemedText style={[
+          styles.settingTitle,
+          { textAlign: I18nManager.isRTL ? "right" : "left" }
+        ]}>
+          {title}
+        </ThemedText>
         {description && (
-          <ThemedText style={styles.settingDescription}>
+          <ThemedText style={[
+            styles.settingDescription,
+            { textAlign: I18nManager.isRTL ? "right" : "left" }
+          ]}>
             {description}
           </ThemedText>
         )}
@@ -118,12 +130,14 @@ export default function SettingsScreen() {
           color="#999"
         />
       ) : (
-        <Switch
-          value={value}
-          onValueChange={onToggle}
-          trackColor={{ false: "#E0E0E0", true: "#4ECDC4" }}
-          thumbColor={"#FFFFFF"}
-        />
+        showToggle && (
+          <Switch
+            value={value}
+            onValueChange={onToggle}
+            trackColor={{ false: "#E0E0E0", true: "#4ECDC4" }}
+            thumbColor={"#FFFFFF"}
+          />
+        )
       )}
     </TouchableOpacity>
   );
@@ -153,7 +167,13 @@ export default function SettingsScreen() {
         ]}
       >
         <TouchableOpacity
-          style={styles.backButton}
+          style={[
+            styles.backButton,
+            { 
+              left: I18nManager.isRTL ? undefined : 16,
+              right: I18nManager.isRTL ? 16 : undefined 
+            }
+          ]}
           onPress={() => navigation.goBack()}
         >
           <Ionicons
@@ -214,7 +234,16 @@ export default function SettingsScreen() {
             title={<ThemedText>{t("clearStorage")}</ThemedText>}
             description={t("freeUpStorage")}
             showToggle={false}
-            onPress={() => {}}
+            onPress={() => {
+              Alert.alert(
+                t("clearStorage"),
+                t("clearStorageConfirm"),
+                [
+                  { text: t("cancel"), style: "cancel" },
+                  { text: t("confirm"), onPress: () => {} }
+                ]
+              );
+            }}
           />
         </ThemedView>
 
@@ -230,7 +259,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="language-outline"
             title={<ThemedText>{t("language")}</ThemedText>}
-            description={currentLanguage}
+            description={getCurrentLanguageDisplay()}
             showToggle={false}
             onPress={() => setLanguageModalVisible(true)}
           />
@@ -241,7 +270,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="information-circle-outline"
             title={<ThemedText>{t("appVersion")}</ThemedText>}
-            description="v1.0"
+            description="v1.0.0"
             showToggle={false}
             onPress={() => {}}
           />
@@ -260,7 +289,16 @@ export default function SettingsScreen() {
             title={<ThemedText>{t("resetSettings")}</ThemedText>}
             description={t("resetSettingsDesc")}
             showToggle={false}
-            onPress={() => {}}
+            onPress={() => {
+              Alert.alert(
+                t("resetSettings"),
+                t("resetSettingsConfirm"),
+                [
+                  { text: t("cancel"), style: "cancel" },
+                  { text: t("reset"), style: "destructive", onPress: () => {} }
+                ]
+              );
+            }}
             iconColor="#FF6B6B"
           />
         </ThemedView>
@@ -283,7 +321,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    left: 16,
     bottom: 60,
     zIndex: 10,
   },
@@ -327,5 +364,6 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 14,
     color: "#666",
+    marginTop: 2,
   },
 });

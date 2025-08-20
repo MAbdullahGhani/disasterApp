@@ -23,20 +23,30 @@ const languageDetector = {
       
       // Set RTL layout based on detected language
       const isRTL = RTL_LANGUAGES.includes(detectedLanguage);
+      console.log(`Detected language: ${detectedLanguage}, isRTL: ${isRTL}, current isRTL: ${I18nManager.isRTL}`);
+      
+      // Always allow RTL
+      I18nManager.allowRTL(true);
+      
+      // Only force RTL if there's a difference
       if (isRTL !== I18nManager.isRTL) {
-        I18nManager.allowRTL(true);
+        console.log(`Setting RTL to: ${isRTL}`);
         I18nManager.forceRTL(isRTL);
       }
       
       callback(detectedLanguage);
     } catch (error) {
       console.error('Error detecting language from storage:', error);
+      // Default to English and LTR
+      I18nManager.allowRTL(true);
+      I18nManager.forceRTL(false);
       callback('en');
     }
   },
   cacheUserLanguage: async (language: string) => {
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+      console.log(`Cached language: ${language}`);
     } catch (error) {
       console.error('Error caching user language:', error);
     }
@@ -56,13 +66,21 @@ i18next
       },
     },
     fallbackLng: 'en',
-    debug: __DEV__,
+    debug: __DEV__, // Enable debug logs in development
     interpolation: {
-      escapeValue: false,
+      escapeValue: false, // React already escapes values
     },
     react: {
-      useSuspense: false,
+      useSuspense: false, // Disable suspense for React Native
     },
   });
+
+// Add event listener to save language changes
+i18next.on('languageChanged', (lng) => {
+  console.log(`Language changed to: ${lng}`);
+  AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lng).catch(error => {
+    console.error('Error saving language to storage:', error);
+  });
+});
 
 export default i18next;

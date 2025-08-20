@@ -1,4 +1,4 @@
-// HomeScreen.tsx - Fixed for Expo Go with Demo Features
+// HomeScreen.tsx - Updated with i18n for localization
 import Sidebar from "@/components/SideBar";
 import { ThemedInput } from "@/components/ThemedInput";
 import { ThemedText } from "@/components/ThemedText";
@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next"; // Import the hook
 
 // Import our services
 import NotificationDrawer from "@/components/NotificationSidebar";
@@ -82,6 +83,7 @@ interface DisasterResource {
 
 // --- Main Component ---
 export default function HomeScreen() {
+  const { t } = useTranslation(); // Initialize the translation function
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
   const [alertsLoading, setAlertsLoading] = useState(true);
@@ -108,7 +110,6 @@ export default function HomeScreen() {
     
     const handleAppStateChange = (nextAppState: string) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-        // App came to foreground, refresh data
         refreshLocationData();
         updateNotificationCount();
       }
@@ -128,25 +129,22 @@ export default function HomeScreen() {
     try {
       console.log('Initializing services...');
       
-      // Initialize notification service with callback
       await NotificationService.initialize((notification: NotificationData) => {
         updateNotificationCount();
         console.log('New notification received in app:', notification.title);
         
-        // Show alert for critical notifications when app is active
         if (notification.priority === 'critical' && appState.current === 'active') {
           Alert.alert(
-            "🚨 CRITICAL ALERT",
+            t('alerts.criticalTitle'),
             notification.message,
             [
-              { text: "Dismiss", style: "cancel" },
-              { text: "View Details", onPress: () => setNotiSidebarVisible(true) }
+              { text: t('alerts.dismiss'), style: "cancel" },
+              { text: t('alerts.viewDetails'), onPress: () => setNotiSidebarVisible(true) }
             ]
           );
         }
       });
 
-      // Initialize location alert service
       await locationAlertService.initialize();
       setIsLocationInitialized(true);
       
@@ -154,9 +152,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error initializing services:', error);
       Alert.alert(
-        "Initialization Error",
-        "Some features may not work properly. Please restart the app.",
-        [{ text: "OK" }]
+        t('alerts.initErrorTitle'),
+        t('alerts.initErrorMessage'),
+        [{ text: t('alerts.ok') }]
       );
     }
   };
@@ -178,7 +176,7 @@ export default function HomeScreen() {
       console.log('Refreshing location data...');
       const alerts = await locationAlertService.getAllAlerts();
       setLocationAlerts(alerts);
-      await locationAlertService.refreshAlerts(); // Force refresh
+      await locationAlertService.refreshAlerts();
       await updateNotificationCount();
     } catch (error) {
       console.error('Error refreshing location data:', error);
@@ -204,7 +202,6 @@ export default function HomeScreen() {
       updateNotificationCount(),
     ]);
     
-    // Wait a bit for location service to initialize
     setTimeout(async () => {
       await refreshLocationData();
       setAlertsLoading(false);
@@ -215,36 +212,36 @@ export default function HomeScreen() {
     const resources: DisasterResource[] = [
       {
         id: "1",
-        title: "NDMA Pakistan",
-        description: "National Disaster Management Authority updates",
-        source: "NDMA",
+        title: t('resources.ndma.title'),
+        description: t('resources.ndma.description'),
+        source: t('resources.ndma.source'),
         lastUpdated: "August 18, 2025",
         link: "http://ndma.gov.pk/",
         status: "active",
       },
       {
         id: "2",
-        title: "PMD Weather",
-        description: "Pakistan Meteorological Department forecasts",
-        source: "PMD",
+        title: t('resources.pmd.title'),
+        description: t('resources.pmd.description'),
+        source: t('resources.pmd.source'),
         lastUpdated: "August 18, 2025",
         link: "https://www.pmd.gov.pk/en/",
         status: "normal",
       },
       {
         id: "3",
-        title: "PDMA Emergency",
-        description: "Provincial Disaster Management response",
-        source: "PDMA",
+        title: t('resources.pdma.title'),
+        description: t('resources.pdma.description'),
+        source: t('resources.pdma.source'),
         lastUpdated: "August 18, 2025",
         link: "https://www.pdma.gov.pk/",
         status: "warning",
       },
       {
         id: "4",
-        title: "Rescue 1122",
-        description: "Emergency rescue services - Call 1122",
-        source: "Rescue Service",
+        title: t('resources.rescue.title'),
+        description: t('resources.rescue.description'),
+        source: t('resources.rescue.source'),
         lastUpdated: "August 18, 2025",
         link: "https://rescue.gov.pk/",
         status: "active",
@@ -271,7 +268,7 @@ export default function HomeScreen() {
       console.log('Getting current position...');
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 10000, // 10 second timeout
+        timeout: 10000,
       });
       
       console.log('Location obtained:', location.coords.latitude, location.coords.longitude);
@@ -287,7 +284,6 @@ export default function HomeScreen() {
         cityName
       );
 
-      // Manually trigger location update for the alert service
       if (isLocationInitialized) {
         await locationAlertService.handleLocationUpdate(location);
       }
@@ -308,7 +304,7 @@ export default function HomeScreen() {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
         {
           headers: {
-            "Accept-Language": "en",
+            "Accept-Language": t('cityLang'),
             "User-Agent": "DisasterReadyApp/1.0",
           },
         }
@@ -325,13 +321,13 @@ export default function HomeScreen() {
       const cityName = data.address?.city ||
         data.address?.town ||
         data.address?.village ||
-        "Current Location";
+        t('home.currentLocation');
       
       console.log('City name obtained:', cityName);
       return cityName;
     } catch (error) {
       console.error("Reverse geocoding error:", error);
-      return "Current Location";
+      return t('home.currentLocation');
     }
   };
 
@@ -362,7 +358,6 @@ export default function HomeScreen() {
       setWeatherData(weather);
       console.log('Weather data set:', weather.city, weather.temp + '°C');
 
-      // Check for weather-based alerts (with lower thresholds for demo)
       await checkWeatherAlerts(data, city, lat, lon);
     } catch (e) {
       console.error("Weather API Error:", e);
@@ -372,14 +367,14 @@ export default function HomeScreen() {
     }
   };
 
-  // Check for weather-based alerts with more sensitive thresholds
   const checkWeatherAlerts = async (weatherData: any, city: string, lat: number, lon: number) => {
+    // This function contains notification content, which can also be translated
+    // but is omitted here as it wasn't in the provided JSON.
     try {
       if (weatherData.hourly?.precipitation_probability) {
         const next24Hours = weatherData.hourly.precipitation_probability.slice(0, 24);
         const maxPrecipitation = Math.max(...next24Hours);
         
-        // Lower threshold for demo - 50% instead of 70%
         if (maxPrecipitation > 50) {
           await NotificationService.scheduleWeatherAlert(
             'Rain Warning',
@@ -387,13 +382,11 @@ export default function HomeScreen() {
             maxPrecipitation > 80 ? 'critical' : maxPrecipitation > 65 ? 'high' : 'moderate',
             city
           );
-          
           await updateNotificationCount();
           console.log('Weather alert sent for precipitation:', maxPrecipitation + '%');
         }
       }
 
-      // Check for temperature alerts with lower thresholds
       if (weatherData.daily?.temperature_2m_max?.[0] > 30) {
         await NotificationService.scheduleWeatherAlert(
           'Hot Weather Alert',
@@ -401,12 +394,10 @@ export default function HomeScreen() {
           weatherData.daily.temperature_2m_max[0] > 35 ? 'high' : 'moderate',
           city
         );
-        
         await updateNotificationCount();
         console.log('Hot weather alert sent:', weatherData.daily.temperature_2m_max[0] + '°C');
       }
 
-      // Check for cold weather alerts
       if (weatherData.daily?.temperature_2m_min?.[0] < 10) {
         await NotificationService.scheduleWeatherAlert(
           'Cold Weather Notice',
@@ -414,7 +405,6 @@ export default function HomeScreen() {
           weatherData.daily.temperature_2m_min[0] < 5 ? 'high' : 'moderate',
           city
         );
-        
         await updateNotificationCount();
         console.log('Cold weather alert sent:', weatherData.daily.temperature_2m_min[0] + '°C');
       }
@@ -434,16 +424,7 @@ export default function HomeScreen() {
       const pakistanFeatures = data.features.filter((eq: any) => {
         const place = eq.properties.place.toLowerCase();
         return (
-          place.includes("pakistan") ||
-          place.includes("kashmir") ||
-          place.includes("quetta") ||
-          place.includes("islamabad") ||
-          place.includes("lahore") ||
-          place.includes("karachi") ||
-          place.includes("gilgit") ||
-          place.includes("peshawar") ||
-          place.includes("multan") ||
-          place.includes("skardu")
+          place.includes("pakistan") || place.includes("kashmir") || place.includes("quetta") || place.includes("islamabad") || place.includes("lahore") || place.includes("karachi") || place.includes("gilgit") || place.includes("peshawar") || place.includes("multan") || place.includes("skardu")
         );
       });
 
@@ -471,8 +452,6 @@ export default function HomeScreen() {
         }));
 
       setSeismicAlerts(parsed);
-
-      // Check for recent earthquakes and send notifications (with lower threshold)
       await checkSeismicAlerts(pakistanFeatures);
       console.log('Seismic data loaded:', parsed.length, 'alerts');
     } catch (err) {
@@ -481,7 +460,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Check for seismic alerts with lower magnitude threshold for demo
   const checkSeismicAlerts = async (earthquakes: any[]) => {
     try {
       for (const eq of earthquakes) {
@@ -491,17 +469,13 @@ export default function HomeScreen() {
         const now = new Date();
         const hoursSince = (now.getTime() - time.getTime()) / (1000 * 60 * 60);
         
-        // Lower threshold for demo: 6 hours instead of 2, and magnitude >= 3.5
         if (hoursSince <= 6 && magnitude >= 3.5) {
-          const severity = magnitude >= 5.0 ? 'critical' : magnitude >= 4.5 ? 'high' : 'moderate';
-          
           await NotificationService.scheduleSeismicAlert(
             `Earthquake M${magnitude.toFixed(1)} Detected`,
             `A magnitude ${magnitude.toFixed(1)} earthquake occurred ${place}. Monitor for aftershocks and follow safety protocols.`,
             magnitude,
             place
           );
-          
           await updateNotificationCount();
           console.log('Seismic alert sent:', magnitude, place);
         }
@@ -529,24 +503,10 @@ export default function HomeScreen() {
       
       const pakistanAlerts: AlertType[] = [];
       const internationalAlerts: AlertType[] = [];
-      const pakistaniKeywords = [
-        "pakistan",
-        "karachi",
-        "lahore",
-        "islamabad",
-        "sindh",
-        "punjab",
-        "balochistan",
-        "kpk",
-        "gilgit",
-        "kashmir",
-        "indus",
-      ];
+      const pakistaniKeywords = ["pakistan", "karachi", "lahore", "islamabad", "sindh", "punjab", "balochistan", "kpk", "gilgit", "kashmir", "indus"];
       
       items
-        .filter((item: any) =>
-          (item.title || "").toLowerCase().includes("flood")
-        )
+        .filter((item: any) => (item.title || "").toLowerCase().includes("flood"))
         .forEach((item: any, index: number) => {
           const title = (item.title || "").toLowerCase();
           const alert: AlertType = {
@@ -555,15 +515,13 @@ export default function HomeScreen() {
             title: item.title,
             description: (item.description || "").substring(0, 100) + "...",
             location: "Various Regions",
-            time: item.pubDate ? getTimeAgo(new Date(item.pubDate)) : "Recent",
+            time: item.pubDate ? getTimeAgo(new Date(item.pubDate)) : t('home.recent'),
             severity: "moderate",
             link: item.link,
           };
           
           if (pakistaniKeywords.some((keyword) => title.includes(keyword))) {
             pakistanAlerts.push(alert);
-            
-            // Send notification for Pakistan flood alerts
             NotificationService.scheduleLocationAlert(
               'Flood Alert in Pakistan',
               `Flood conditions reported: ${item.title}`,
@@ -588,48 +546,22 @@ export default function HomeScreen() {
   const getTimeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     const days = Math.floor(seconds / 86400);
-    if (days > 1) return `${days} days ago`;
-    if (days === 1) return `1 day ago`;
+    if (days > 0) return t('home.timeAgo.day_other', { count: days });
+    if (days === 1) return t('home.timeAgo.day_one');
+    
     const hours = Math.floor(seconds / 3600);
-    if (hours > 1) return `${hours} hours ago`;
-    if (hours === 1) return `1 hour ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes > 1) return `${minutes} minutes ago`;
-    return `Just now`;
-  };
+    if (hours > 0) return t('home.timeAgo.hour_other', { count: hours });
+    if (hours === 1) return t('home.timeAgo.hour_one');
 
+    const minutes = Math.floor(seconds / 60);
+    if (minutes > 0) return t('home.timeAgo.minute_other', { count: minutes });
+    if (minutes === 1) return t('home.timeAgo.minute_one');
+    
+    return t('home.timeAgo.now');
+  };
+  
   const getWeatherCondition = (code: number): string => {
-    const conditionMap: { [key: number]: string } = {
-      0: "Clear",
-      1: "Mainly Clear",
-      2: "Partly Cloudy",
-      3: "Overcast",
-      45: "Fog",
-      48: "Depositing Rime Fog",
-      51: "Light Drizzle",
-      53: "Drizzle",
-      55: "Dense Drizzle",
-      56: "Light Freezing Drizzle",
-      57: "Dense Freezing Drizzle",
-      61: "Slight Rain",
-      63: "Rain",
-      65: "Heavy Rain",
-      66: "Light Freezing Rain",
-      67: "Heavy Freezing Rain",
-      71: "Slight Snowfall",
-      73: "Snowfall",
-      75: "Heavy Snowfall",
-      77: "Snow Grains",
-      80: "Slight Rain Showers",
-      81: "Rain Showers",
-      82: "Violent Rain Showers",
-      85: "Slight Snow Showers",
-      86: "Heavy Snow Showers",
-      95: "Thunderstorm",
-      96: "Thunderstorm with Hail",
-      99: "Thunderstorm with Heavy Hail",
-    };
-    return conditionMap[code] || "Clear";
+    return t(`weatherConditions.${code}`, { defaultValue: t('weatherConditions.0') });
   };
 
   const getWeatherIcon = (condition: string): keyof typeof Icon.glyphMap => {
@@ -661,42 +593,44 @@ export default function HomeScreen() {
 
   const handleResourcePress = (resource: DisasterResource) => {
     Alert.alert(
-      resource.title,
-      `${resource.description}\n\nWould you like to visit ${resource.source}?`,
+      t('alerts.visitWebsitePrompt.title', { resourceTitle: resource.title }),
+      t('alerts.visitWebsitePrompt.message', {
+        resourceDescription: resource.description,
+        resourceSource: resource.source
+      }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('alerts.cancel'), style: "cancel" },
         {
-          text: "Visit Website",
+          text: t('alerts.visitWebsitePrompt.action'),
           onPress: () => Linking.openURL(resource.link),
         },
       ]
     );
   };
 
-  // Enhanced test alert functions for demo
   const sendTestAlert = async () => {
     Alert.alert(
-      "🚀 Demo Notifications",
-      "Choose the type of demo notification to send:",
+      t('alerts.demoTitle'),
+      t('alerts.demoMessage'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('alerts.cancel'), style: "cancel" },
         {
-          text: "Immediate Test",
+          text: t('alerts.immediateTest'),
           onPress: async () => {
             await locationAlertService.createTestAlerts();
             await updateNotificationCount();
-            Alert.alert("✅ Success", "Test notifications sent immediately!");
+            Alert.alert(t('alerts.successTitle'), t('alerts.successMessage'));
           },
         },
         {
-          text: "30 Second Delay",
+          text: t('alerts.delayedTest'),
           onPress: async () => {
-            const message = await locationAlertService.scheduleDelayedTestNotification(30);
-            Alert.alert("⏰ Scheduled", "A critical evacuation alert will arrive in 30 seconds.\n\nTry closing the app to test background notifications!");
+            await locationAlertService.scheduleDelayedTestNotification(30);
+            Alert.alert(t('alerts.scheduledTitle'), t('alerts.scheduledMessage'));
           },
         },
         {
-          text: "Weather Alert",
+          text: t('alerts.weatherTest'),
           onPress: async () => {
             await NotificationService.scheduleWeatherAlert(
               "DEMO: Severe Storm Warning",
@@ -705,11 +639,11 @@ export default function HomeScreen() {
               weatherData?.city || "Current Location"
             );
             await updateNotificationCount();
-            Alert.alert("⛈️ Sent", "Severe weather alert sent!");
+            Alert.alert(t('alerts.weatherSentTitle'), t('alerts.weatherSentMessage'));
           },
         },
         {
-          text: "Emergency Alert",
+          text: t('alerts.emergencyTest'),
           onPress: async () => {
             await NotificationService.scheduleEmergencyAlert(
               "DEMO: Emergency Broadcast",
@@ -718,7 +652,7 @@ export default function HomeScreen() {
               "Test Emergency"
             );
             await updateNotificationCount();
-            Alert.alert("🚨 Sent", "Emergency alert sent!");
+            Alert.alert(t('alerts.emergencySentTitle'), t('alerts.emergencySentMessage'));
           },
         },
       ]
@@ -727,7 +661,6 @@ export default function HomeScreen() {
 
   const handleNotificationPress = () => {
     setNotiSidebarVisible(true);
-    // Update count when drawer opens
     setTimeout(() => {
       updateNotificationCount();
     }, 500);
@@ -746,7 +679,7 @@ export default function HomeScreen() {
           />
           <ThemedInput
             style={styles.searchInput}
-            placeholder="Search for any city..."
+            placeholder={t('home.searchPlaceholder')}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -763,13 +696,12 @@ export default function HomeScreen() {
         </ThemedView>
       ) : (
         <>
-          <ThemedText type="title">Disaster Ready</ThemedText>
+          <ThemedText type="title">{t('home.headerTitle')}</ThemedText>
           <ThemedView style={styles.headerRight}>
             <TouchableOpacity onPress={() => setIsSearchVisible(true)}>
               <Ionicons name="search-outline" size={24} color="#333" />
             </TouchableOpacity>
             
-            {/* Demo test button */}
             <TouchableOpacity
               style={{ marginLeft: 15 }}
               onPress={sendTestAlert}
@@ -812,13 +744,13 @@ export default function HomeScreen() {
         {loadingSuggestions ? (
           <ThemedView style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#00BCD4" />
-            <ThemedText style={styles.loadingText}>Searching...</ThemedText>
+            <ThemedText style={styles.loadingText}>{t('home.searchingText')}</ThemedText>
           </ThemedView>
         ) : citySuggestions.length === 0 && searchQuery.length > 2 ? (
           <ThemedView style={styles.noResultsContainer}>
             <Ionicons name="location-outline" size={24} color="#ccc" />
             <ThemedText style={styles.noResultsText}>
-              No cities found for "{searchQuery}"
+              {t('home.noCitiesFound', { query: searchQuery })}
             </ThemedText>
           </ThemedView>
         ) : (
@@ -863,11 +795,11 @@ export default function HomeScreen() {
       <Ionicons name="information-circle" size={20} color="#2196F3" />
       <ThemedView style={styles.demoBannerContent}>
         <ThemedText style={styles.demoBannerText}>
-          🚀 Demo Mode: Tap the flask icon to test real-time notifications
+          {t('home.demoBannerTitle')}
         </ThemedText>
         {isLocationInitialized && (
           <ThemedText style={styles.demoBannerSubtext}>
-            Location services active • Monitoring for disaster alerts
+            {t('home.demoBannerSubtitle')}
           </ThemedText>
         )}
       </ThemedView>
@@ -878,7 +810,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.section}>
       <ThemedView style={styles.weatherHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Weather Forecast
+          {t('home.weatherTitle')}
         </ThemedText>
         {weatherData?.city && (
           <ThemedText style={styles.cityText}>{weatherData.city}</ThemedText>
@@ -892,7 +824,7 @@ export default function HomeScreen() {
         />
       ) : !weatherData ? (
         <ThemedView style={styles.weatherCard}>
-          <ThemedText>Could not fetch weather data.</ThemedText>
+          <ThemedText>{t('home.weatherFetchError')}</ThemedText>
         </ThemedView>
       ) : (
         <ThemedView style={styles.weatherCard}>
@@ -913,12 +845,12 @@ export default function HomeScreen() {
               </ThemedView>
             </ThemedView>
             <ThemedView style={styles.weatherDetails}>
-              <ThemedText style={styles.weatherDetail}>Today</ThemedText>
+              <ThemedText style={styles.weatherDetail}>{t('home.today')}</ThemedText>
               <ThemedText style={styles.weatherDetail}>
-                High: {weatherData.high}°C
+                {t('home.high', { temp: weatherData.high })}
               </ThemedText>
               <ThemedText style={styles.weatherDetail}>
-                Low: {weatherData.low}°C
+                {t('home.low', { temp: weatherData.low })}
               </ThemedText>
             </ThemedView>
           </ThemedView>
@@ -951,7 +883,7 @@ export default function HomeScreen() {
             <ThemedText style={styles.alertMagnitude}>
               {alert.magnitude?.toFixed(1)}
             </ThemedText>
-            <ThemedText style={styles.alertMagnitudeLabel}>Mag</ThemedText>
+            <ThemedText style={styles.alertMagnitudeLabel}>{t('home.magnitude')}</ThemedText>
           </ThemedView>
         )}
         <ThemedView style={styles.alertInfo}>
@@ -961,7 +893,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.alertTime}>{alert.time}</ThemedText>
           {alert.depth && (
             <ThemedText style={styles.alertDepth}>
-              Depth: {alert.depth.toFixed(1)} km
+              {t('home.depth', { depth: alert.depth.toFixed(1) })}
             </ThemedText>
           )}
         </ThemedView>
@@ -985,7 +917,7 @@ export default function HomeScreen() {
   const renderAlertsSection = () => (
     <ThemedView style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Critical Alerts
+        {t('home.alertsTitle')}
       </ThemedText>
       {alertsLoading ? (
         <ActivityIndicator
@@ -1001,14 +933,14 @@ export default function HomeScreen() {
               type="defaultSemiBold"
               style={styles.alertCategoryTitle}
             >
-              Seismic Activity
+              {t('home.seismicCategory')}
             </ThemedText>
           </ThemedView>
           {seismicAlerts.length > 0 ? (
             seismicAlerts.map(renderAlertItem)
           ) : (
             <ThemedText style={styles.noAlertsText}>
-              No significant seismic activity in the region.
+              {t('home.noSeismicActivity')}
             </ThemedText>
           )}
 
@@ -1018,14 +950,14 @@ export default function HomeScreen() {
               type="defaultSemiBold"
               style={styles.alertCategoryTitle}
             >
-              Flood Warnings
+              {t('home.floodCategory')}
             </ThemedText>
           </ThemedView>
           {pakistanFloodAlerts.length > 0 ? (
             pakistanFloodAlerts.map(renderAlertItem)
           ) : (
             <ThemedText style={styles.noAlertsText}>
-              No active flood warnings reported in Pakistan.
+              {t('home.noFloodWarnings')}
             </ThemedText>
           )}
 
@@ -1035,7 +967,7 @@ export default function HomeScreen() {
                 type="defaultSemiBold"
                 style={styles.subCategoryTitle}
               >
-                International Alerts
+                {t('home.internationalAlerts')}
               </ThemedText>
               {internationalFloodAlerts.map(renderAlertItem)}
             </>
@@ -1048,7 +980,7 @@ export default function HomeScreen() {
   const renderPakistaniResources = () => (
     <ThemedView style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        Local Resources
+        {t('home.resourcesTitle')}
       </ThemedText>
       <ThemedView style={styles.resourcesGrid}>
         {disasterResources.map((resource) => (
