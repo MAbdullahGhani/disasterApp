@@ -1,4 +1,5 @@
-// services/LocationAlertService.ts - Fixed for Expo Go
+// services/LocationAlertService.ts - Fixed with proper deduplication
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
@@ -7,7 +8,7 @@ import NotificationService from './notificationService';
 const BACKGROUND_LOCATION_TASK = 'background-location-task';
 const LOCATION_ALERT_STORAGE_KEY = 'locationAlerts';
 const USER_LOCATION_KEY = 'userLocation';
-const NOTIFIED_ALERTS_KEY = 'notifiedAlerts';
+const PROCESSED_ALERTS_KEY = 'processedAlerts'; // Track processed alerts to prevent spam
 
 interface LocationAlert {
   id: string;
@@ -23,6 +24,8 @@ interface LocationAlert {
   timestamp: string;
   expiresAt?: string;
   isActive: boolean;
+  dataSource: string; // Track data source for validation
+  alertHash?: string; // Hash for deduplication
 }
 
 interface UserLocation {
@@ -36,13 +39,13 @@ class LocationAlertService {
   private isTrackingLocation = false;
   private alertCheckInterval: NodeJS.Timeout | null = null;
   private currentLocation: UserLocation | null = null;
-  private notifiedAlerts: Set<string> = new Set();
+  private processedAlerts: Set<string> = new Set(); // Prevent duplicate processing
 
   // Initialize the service
   async initialize() {
     try {
       await this.loadStoredLocation();
-      await this.loadNotifiedAlerts();
+      await this.loadProcessedAlerts();
       await this.setupLocationTracking();
       await this.startAlertMonitoring();
       
@@ -50,6 +53,52 @@ class LocationAlertService {
     } catch (error) {
       console.error('Failed to initialize LocationAlertService:', error);
     }
+  }
+
+  // Load processed alerts to prevent duplicate notifications
+  async loadProcessedAlerts() {
+    try {
+      const stored = await AsyncStorage.getItem(PROCESSED_ALERTS_KEY);
+      if (stored) {
+        const alertIds = JSON.parse(stored);
+        this.processedAlerts = new Set(alertIds);
+        console.log(`Loaded ${this.processedAlerts.size} processed alerts`);
+      }
+    } catch (error) {
+      console.error('Error loading processed alerts:', error);
+    }
+  }
+
+  // Save processed alerts
+  async saveProcessedAlerts() {
+    try {
+      await AsyncStorage.setItem(PROCESSED_ALERTS_KEY, JSON.stringify([...this.processedAlerts]));
+    } catch (error) {
+      console.error('Error saving processed alerts:', error);
+    }
+  }
+
+  // Generate unique hash for alert to prevent duplicates
+  private generateAlertHash(alert: Partial<LocationAlert>): string {
+    const content = `${alert.type}_${alert.title}_${alert.location?.latitude}_${alert.location?.longitude}_${new Date(alert.timestamp || '').toDateString()}`;
+    let hash = 0;
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString();
+  }
+
+  // Check if alert has been processed
+  private hasAlertBeenProcessed(alertHash: string): boolean {
+    return this.processedAlerts.has(alertHash);
+  }
+
+  // Mark alert as processed
+  private async markAlertAsProcessed(alertHash: string) {
+    this.processedAlerts.add(alertHash);
+    await this.saveProcessedAlerts();
   }
 
   // Setup location tracking
@@ -77,8 +126,8 @@ class LocationAlertService {
       if (backgroundStatus === 'granted') {
         await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
           accuracy: Location.Accuracy.Balanced,
-          timeInterval: 300000, // Update every 5 minutes
-          distanceInterval: 1000, // Update if moved 1km
+          timeInterval: 600000, // Update every 10 minutes (reduced frequency)
+          distanceInterval: 2000, // Update if moved 2km
           showsBackgroundLocationIndicator: false,
         });
       }
@@ -104,7 +153,7 @@ class LocationAlertService {
     
     console.log('Location updated:', userLocation.latitude, userLocation.longitude);
     
-    // Check for location-based alerts
+    // Check for location-based alerts (less frequently)
     await this.checkLocationBasedAlerts(userLocation);
   }
 
@@ -121,36 +170,14 @@ class LocationAlertService {
     }
   }
 
-  // Load notified alerts to prevent spam
-  async loadNotifiedAlerts() {
-    try {
-      const stored = await AsyncStorage.getItem(NOTIFIED_ALERTS_KEY);
-      if (stored) {
-        const alertIds = JSON.parse(stored);
-        this.notifiedAlerts = new Set(alertIds);
-      }
-    } catch (error) {
-      console.error('Error loading notified alerts:', error);
-    }
-  }
-
-  // Save notified alerts
-  async saveNotifiedAlerts() {
-    try {
-      await AsyncStorage.setItem(NOTIFIED_ALERTS_KEY, JSON.stringify([...this.notifiedAlerts]));
-    } catch (error) {
-      console.error('Error saving notified alerts:', error);
-    }
-  }
-
-  // Start monitoring for alerts - Check every 2 minutes for demo purposes
+  // Start monitoring for alerts - Reduced frequency to prevent spam
   async startAlertMonitoring() {
-    // Check for alerts every 2 minutes for better demo experience
+    // Check for alerts every 10 minutes instead of 2 minutes
     this.alertCheckInterval = setInterval(async () => {
       if (this.currentLocation) {
         await this.fetchLocationBasedAlerts(this.currentLocation);
       }
-    }, 120000); // 2 minutes
+    }, 600000); // 10 minutes
 
     // Initial check
     if (this.currentLocation) {
@@ -166,14 +193,14 @@ class LocationAlertService {
     }
   }
 
-  // Fetch location-based alerts from various APIs
+  // Fetch location-based alerts from various APIs with enhanced filtering
   async fetchLocationBasedAlerts(userLocation: UserLocation) {
     const alerts: LocationAlert[] = [];
 
     try {
-      console.log('Fetching alerts for location:', userLocation.latitude, userLocation.longitude);
+      console.log('Fetching real disaster alerts for location:', userLocation.latitude, userLocation.longitude);
       
-      // Fetch weather alerts
+      // Fetch weather alerts with stricter thresholds
       const weatherAlerts = await this.fetchWeatherAlerts(userLocation);
       alerts.push(...weatherAlerts);
 
@@ -185,12 +212,12 @@ class LocationAlertService {
       const floodAlerts = await this.fetchFloodAlerts(userLocation);
       alerts.push(...floodAlerts);
 
-      console.log('Found', alerts.length, 'alerts');
+      console.log('Found', alerts.length, 'real disaster alerts');
 
       // Store alerts
       await this.storeAlerts(alerts);
 
-      // Process new alerts
+      // Process new alerts (with deduplication)
       await this.processNewAlerts(alerts);
 
     } catch (error) {
@@ -198,13 +225,13 @@ class LocationAlertService {
     }
   }
 
-  // Fetch weather alerts with lower thresholds for demo
+  // Fetch weather alerts with realistic thresholds (not demo thresholds)
   async fetchWeatherAlerts(userLocation: UserLocation): Promise<LocationAlert[]> {
     const alerts: LocationAlert[] = [];
     
     try {
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&hourly=temperature_2m,precipitation_probability,weathercode,wind_speed_10m&alerts=true&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&hourly=temperature_2m,precipitation_probability,weathercode,wind_speed_10m,precipitation&alerts=true&timezone=auto`
       );
       
       if (!response.ok) return alerts;
@@ -215,20 +242,21 @@ class LocationAlertService {
         const precipProbs = data.hourly.precipitation_probability.slice(0, next12Hours);
         const temps = data.hourly.temperature_2m.slice(0, next12Hours);
         const windSpeeds = data.hourly.wind_speed_10m.slice(0, next12Hours);
+        const precipitation = data.hourly.precipitation.slice(0, next12Hours);
         
         const maxPrecip = Math.max(...precipProbs);
         const maxTemp = Math.max(...temps);
         const minTemp = Math.min(...temps);
         const maxWind = Math.max(...windSpeeds);
+        const totalRainfall = precipitation.reduce((sum: number, val: number) => sum + (val || 0), 0);
 
-        // Lower thresholds for demo purposes
-        if (maxPrecip >= 60) {
-          alerts.push({
-            id: `weather_rain_${userLocation.latitude}_${userLocation.longitude}_${new Date().toDateString()}`,
-            type: 'weather',
-            title: 'Heavy Rain Alert',
-            message: `High precipitation (${maxPrecip}%) expected in your area. Heavy rain possible.`,
-            severity: maxPrecip >= 80 ? 'high' : 'moderate',
+        // REAL thresholds for actual severe weather
+        if (maxPrecip >= 80 && totalRainfall >= 10) { // 80% chance + significant rainfall
+          const alertData = {
+            type: 'weather' as const,
+            title: 'Severe Weather Warning',
+            message: `Heavy rain alert: ${maxPrecip}% chance, ${totalRainfall.toFixed(1)}mm expected. Flooding possible.`,
+            severity: maxPrecip >= 90 ? 'critical' as const : 'high' as const,
             location: {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -237,16 +265,26 @@ class LocationAlertService {
             timestamp: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'open-meteo',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `weather_rain_${alertHash}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
 
-        if (maxTemp >= 35) {
-          alerts.push({
-            id: `weather_heat_${userLocation.latitude}_${userLocation.longitude}_${new Date().toDateString()}`,
-            type: 'weather',
-            title: 'Heat Warning',
-            message: `High temperatures up to ${Math.round(maxTemp)}°C expected. Stay hydrated.`,
-            severity: maxTemp >= 40 ? 'critical' : 'high',
+        // Extreme temperature alerts (realistic thresholds)
+        if (maxTemp >= 40) { // 40°C+ is genuinely dangerous
+          const alertData = {
+            type: 'weather' as const,
+            title: 'Extreme Heat Warning',
+            message: `Dangerous heat: ${Math.round(maxTemp)}°C expected. Heat stroke risk - stay hydrated and indoors.`,
+            severity: maxTemp >= 45 ? 'critical' as const : 'high' as const,
             location: {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -255,16 +293,25 @@ class LocationAlertService {
             timestamp: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'open-meteo',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `weather_heat_${alertHash}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
 
-        if (minTemp <= 5) {
-          alerts.push({
-            id: `weather_cold_${userLocation.latitude}_${userLocation.longitude}_${new Date().toDateString()}`,
-            type: 'weather',
-            title: 'Cold Weather Warning',
-            message: `Cold temperatures down to ${Math.round(minTemp)}°C expected. Stay warm.`,
-            severity: minTemp <= 0 ? 'critical' : 'high',
+        if (minTemp <= -10) { // Extreme cold
+          const alertData = {
+            type: 'weather' as const,
+            title: 'Extreme Cold Warning',
+            message: `Dangerous cold: ${Math.round(minTemp)}°C. Frostbite risk - dress warmly and limit outdoor exposure.`,
+            severity: minTemp <= -20 ? 'critical' as const : 'high' as const,
             location: {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -273,16 +320,26 @@ class LocationAlertService {
             timestamp: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'open-meteo',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `weather_cold_${alertHash}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
 
-        if (maxWind >= 40) {
-          alerts.push({
-            id: `weather_wind_${userLocation.latitude}_${userLocation.longitude}_${new Date().toDateString()}`,
-            type: 'weather',
-            title: 'Strong Wind Warning',
-            message: `Strong winds up to ${Math.round(maxWind)} km/h expected. Secure loose objects.`,
-            severity: maxWind >= 60 ? 'high' : 'moderate',
+        // Strong wind alerts (realistic thresholds)
+        if (maxWind >= 70) { // 70+ km/h is genuinely dangerous
+          const alertData = {
+            type: 'weather' as const,
+            title: 'Dangerous Wind Warning',
+            message: `Dangerous winds: ${Math.round(maxWind)} km/h. Avoid travel, secure outdoor items.`,
+            severity: maxWind >= 100 ? 'critical' as const : 'high' as const,
             location: {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -291,7 +348,17 @@ class LocationAlertService {
             timestamp: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'open-meteo',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `weather_wind_${alertHash}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
       }
     } catch (error) {
@@ -301,14 +368,14 @@ class LocationAlertService {
     return alerts;
   }
 
-  // Fetch seismic alerts with lower magnitude threshold
+  // Fetch seismic alerts with realistic thresholds
   async fetchSeismicAlerts(userLocation: UserLocation): Promise<LocationAlert[]> {
     const alerts: LocationAlert[] = [];
-    const radius = 500; // Increase radius for demo
+    const radius = 200; // Realistic radius for earthquake impacts
 
     try {
       const response = await fetch(
-        `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&maxradiuskm=${radius}&minmagnitude=3.5&orderby=time&limit=10`
+        `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&maxradiuskm=${radius}&minmagnitude=4.5&orderby=time&limit=5`
       );
       
       if (!response.ok) return alerts;
@@ -321,28 +388,37 @@ class LocationAlertService {
         const now = new Date();
         const hoursSince = (now.getTime() - time.getTime()) / (1000 * 60 * 60);
         
-        // Include earthquakes from last 24 hours for demo
-        if (hoursSince <= 24 && magnitude >= 3.5) {
+        // Only include recent significant earthquakes
+        if (hoursSince <= 6 && magnitude >= 4.5) { // Last 6 hours, M4.5+
           let severity: 'low' | 'moderate' | 'high' | 'critical' = 'moderate';
-          if (magnitude >= 6.0) severity = 'critical';
-          else if (magnitude >= 5.0) severity = 'high';
-          else if (magnitude >= 4.0) severity = 'moderate';
+          if (magnitude >= 7.0) severity = 'critical';
+          else if (magnitude >= 6.0) severity = 'high';
+          else if (magnitude >= 5.0) severity = 'moderate';
 
-          alerts.push({
-            id: `seismic_${earthquake.id}`,
-            type: 'seismic',
-            title: `Earthquake M${magnitude.toFixed(1)} Detected`,
-            message: `A magnitude ${magnitude.toFixed(1)} earthquake occurred ${place}. Monitor for aftershocks.`,
+          const alertData = {
+            type: 'seismic' as const,
+            title: `M${magnitude.toFixed(1)} Earthquake Alert`,
+            message: `Magnitude ${magnitude.toFixed(1)} earthquake detected ${place}. Monitor for aftershocks and check for damage.`,
             severity,
             location: {
               latitude: earthquake.geometry.coordinates[1],
               longitude: earthquake.geometry.coordinates[0],
-              radius: magnitude * 50,
+              radius: magnitude * 30,
             },
             timestamp: time.toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'usgs',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `seismic_${earthquake.id}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
       });
     } catch (error) {
@@ -352,12 +428,11 @@ class LocationAlertService {
     return alerts;
   }
 
-  // Fetch flood alerts
+  // Fetch flood alerts with realistic thresholds
   async fetchFloodAlerts(userLocation: UserLocation): Promise<LocationAlert[]> {
     const alerts: LocationAlert[] = [];
 
     try {
-      // Check weather-based flood risk
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&hourly=precipitation&timezone=auto`
       );
@@ -370,14 +445,13 @@ class LocationAlertService {
         const totalPrecip = next24Hours.reduce((sum: number, val: number) => sum + (val || 0), 0);
         const maxHourlyPrecip = Math.max(...next24Hours);
         
-        // Lower threshold for demo
-        if (totalPrecip >= 20 || maxHourlyPrecip >= 8) {
-          alerts.push({
-            id: `flood_risk_${userLocation.latitude}_${userLocation.longitude}_${new Date().toDateString()}`,
-            type: 'flood',
-            title: 'Flood Risk Alert',
-            message: `Heavy rainfall expected (${Math.round(totalPrecip)}mm/24h). Flood risk in low-lying areas.`,
-            severity: totalPrecip >= 50 ? 'critical' : 'high',
+        // Realistic flood risk thresholds
+        if (totalPrecip >= 50 || maxHourlyPrecip >= 20) { // 50mm/24h or 20mm/h
+          const alertData = {
+            type: 'flood' as const,
+            title: 'Flood Warning',
+            message: `High flood risk: ${Math.round(totalPrecip)}mm rainfall expected. Avoid low-lying areas and flooded roads.`,
+            severity: (totalPrecip >= 100 || maxHourlyPrecip >= 30) ? 'critical' as const : 'high' as const,
             location: {
               latitude: userLocation.latitude,
               longitude: userLocation.longitude,
@@ -386,7 +460,17 @@ class LocationAlertService {
             timestamp: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             isActive: true,
-          });
+            dataSource: 'open-meteo',
+          };
+
+          const alertHash = this.generateAlertHash(alertData);
+          if (!this.hasAlertBeenProcessed(alertHash)) {
+            alerts.push({
+              id: `flood_risk_${alertHash}`,
+              alertHash,
+              ...alertData,
+            });
+          }
         }
       }
     } catch (error) {
@@ -396,23 +480,22 @@ class LocationAlertService {
     return alerts;
   }
 
-  // Process new alerts
+  // Process new alerts with enhanced deduplication
   async processNewAlerts(newAlerts: LocationAlert[]) {
     if (!this.currentLocation) return;
 
     for (const alert of newAlerts) {
       if (
         this.isLocationInAlertArea(this.currentLocation, alert.location) &&
-        !this.notifiedAlerts.has(alert.id)
+        !this.hasAlertBeenProcessed(alert.alertHash || alert.id)
       ) {
-        // Send notification
+        // Send notification through our enhanced notification service
         await this.triggerLocationAlert(alert);
         
-        // Mark as notified
-        this.notifiedAlerts.add(alert.id);
-        await this.saveNotifiedAlerts();
+        // Mark as processed to prevent future duplicates
+        await this.markAlertAsProcessed(alert.alertHash || alert.id);
         
-        console.log('New alert processed:', alert.title);
+        console.log('New real disaster alert processed:', alert.title);
       }
     }
   }
@@ -450,8 +533,9 @@ class LocationAlertService {
         
         for (const alert of alerts) {
           if (alert.isActive && this.isLocationInAlertArea(userLocation, alert.location)) {
-            if (!this.notifiedAlerts.has(alert.id)) {
+            if (!this.hasAlertBeenProcessed(alert.alertHash || alert.id)) {
               await this.triggerLocationAlert(alert);
+              await this.markAlertAsProcessed(alert.alertHash || alert.id);
             }
           }
         }
@@ -461,32 +545,37 @@ class LocationAlertService {
     }
   }
 
-  // Store alerts with better deduplication
+  // Store alerts with better deduplication and cleanup
   async storeAlerts(alerts: LocationAlert[]) {
     try {
       const existing = await AsyncStorage.getItem(LOCATION_ALERT_STORAGE_KEY);
       const existingAlerts: LocationAlert[] = existing ? JSON.parse(existing) : [];
       
-      // More intelligent merging - avoid duplicates based on location and type
+      // Merge alerts with improved deduplication
       const mergedAlerts = [...existingAlerts];
       
       alerts.forEach(newAlert => {
-        // Check for existing alert with same ID
-        const existingIndex = mergedAlerts.findIndex(alert => alert.id === newAlert.id);
+        // Check for existing alert with same hash or ID
+        const existingIndex = mergedAlerts.findIndex(alert => 
+          (alert.alertHash && newAlert.alertHash && alert.alertHash === newAlert.alertHash) ||
+          alert.id === newAlert.id
+        );
+        
         if (existingIndex >= 0) {
-          mergedAlerts[existingIndex] = newAlert;
+          mergedAlerts[existingIndex] = newAlert; // Update existing
         } else {
           // Check for similar alert to avoid duplicates
           const isDuplicate = mergedAlerts.some(existing => 
             existing.type === newAlert.type &&
+            existing.severity === newAlert.severity &&
             existing.isActive &&
             this.calculateDistance(
               existing.location.latitude,
               existing.location.longitude,
               newAlert.location.latitude,
               newAlert.location.longitude
-            ) < 5 && // Within 5km
-            new Date(existing.timestamp).toDateString() === new Date(newAlert.timestamp).toDateString()
+            ) < 3 && // Within 3km
+            Math.abs(new Date(existing.timestamp).getTime() - new Date(newAlert.timestamp).getTime()) < 3600000 // Within 1 hour
           );
 
           if (!isDuplicate) {
@@ -496,25 +585,35 @@ class LocationAlertService {
       });
 
       // Clean up expired alerts
+      const now = new Date();
       const activeAlerts = mergedAlerts.filter(alert => {
         if (alert.expiresAt) {
-          const isExpired = new Date(alert.expiresAt) <= new Date();
-          if (isExpired) {
-            this.notifiedAlerts.delete(alert.id);
+          const isExpired = new Date(alert.expiresAt) <= now;
+          if (isExpired && alert.alertHash) {
+            // Remove from processed alerts when expired
+            this.processedAlerts.delete(alert.alertHash);
           }
           return !isExpired;
         }
-        return true;
+        // Remove alerts older than 7 days
+        const alertAge = now.getTime() - new Date(alert.timestamp).getTime();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (alertAge > sevenDays && alert.alertHash) {
+          this.processedAlerts.delete(alert.alertHash);
+        }
+        return alertAge <= sevenDays;
       });
 
       await AsyncStorage.setItem(LOCATION_ALERT_STORAGE_KEY, JSON.stringify(activeAlerts));
-      await this.saveNotifiedAlerts();
+      await this.saveProcessedAlerts();
+      
+      console.log(`Stored ${activeAlerts.length} active alerts`);
     } catch (error) {
       console.error('Error storing alerts:', error);
     }
   }
 
-  // Trigger location alert
+  // Trigger location alert using the enhanced notification service
   async triggerLocationAlert(alert: LocationAlert) {
     try {
       // Map severity to priority
@@ -524,16 +623,32 @@ class LocationAlertService {
       else if (alert.severity === 'moderate') priority = 'medium';
       else priority = 'low';
 
-      // Send notification using our notification service
-      await NotificationService.scheduleLocationAlert(
+      // Create data object with real disaster information
+      const alertData = {
+        alertId: alert.id,
+        dataSource: alert.dataSource,
+        severity: alert.severity,
+        isDemo: false, // These are real alerts
+        alertHash: alert.alertHash,
+        ...(alert.type === 'seismic' && { magnitude: alert.data?.magnitude }),
+        ...(alert.type === 'weather' && { weatherSeverity: alert.severity }),
+      };
+
+      // Send notification using our enhanced notification service
+      const result = await NotificationService.scheduleLocationAlert(
         alert.title,
         alert.message,
         priority,
         alert.type,
-        `${alert.location.latitude.toFixed(2)}, ${alert.location.longitude.toFixed(2)}`
+        `${alert.location.latitude.toFixed(2)}, ${alert.location.longitude.toFixed(2)}`,
+        alertData
       );
 
-      console.log('Location alert triggered:', alert.title);
+      if (result) {
+        console.log('Real disaster alert notification sent:', alert.title);
+      } else {
+        console.log('Alert filtered out (duplicate or invalid):', alert.title);
+      }
     } catch (error) {
       console.error('Error triggering location alert:', error);
     }
@@ -545,8 +660,21 @@ class LocationAlertService {
       const stored = await AsyncStorage.getItem(LOCATION_ALERT_STORAGE_KEY);
       const alerts = stored ? JSON.parse(stored) : [];
       
-      // Return only active alerts
-      return alerts.filter((alert: LocationAlert) => alert.isActive);
+      // Return only active alerts, sorted by severity and time
+      return alerts
+        .filter((alert: LocationAlert) => alert.isActive)
+        .sort((a: LocationAlert, b: LocationAlert) => {
+          // Sort by severity first, then by time
+          const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3 };
+          const aSeverity = severityOrder[a.severity as keyof typeof severityOrder] ?? 3;
+          const bSeverity = severityOrder[b.severity as keyof typeof severityOrder] ?? 3;
+          
+          if (aSeverity !== bSeverity) {
+            return aSeverity - bSeverity;
+          }
+          
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
     } catch (error) {
       console.error('Error getting alerts:', error);
       return [];
@@ -558,29 +686,37 @@ class LocationAlertService {
     return this.currentLocation;
   }
 
-  // Clear notification history (for testing)
-  async clearNotificationHistory() {
-    this.notifiedAlerts.clear();
-    await AsyncStorage.removeItem(NOTIFIED_ALERTS_KEY);
-    console.log('Notification history cleared');
+  // Clear processed alerts history (for testing)
+  async clearProcessedAlerts() {
+    this.processedAlerts.clear();
+    await AsyncStorage.removeItem(PROCESSED_ALERTS_KEY);
+    console.log('Processed alerts history cleared - will show real alerts again');
   }
 
-  // Create test alerts for demo - IMPROVED VERSION
-  async createTestAlerts() {
+  // Force refresh alerts (for manual testing)
+  async refreshAlerts() {
+    console.log('Manually refreshing real disaster alerts...');
+    if (this.currentLocation) {
+      await this.fetchLocationBasedAlerts(this.currentLocation);
+    }
+  }
+
+  // Create controlled test alerts (for demo purposes only)
+  async createControlledTestAlerts() {
     if (!this.currentLocation) {
       console.log('No location available for test alerts');
       return;
     }
 
-    console.log('Creating test alerts...');
+    console.log('Creating controlled demo alerts...');
 
-    const testAlerts: LocationAlert[] = [
+    const demoAlerts: LocationAlert[] = [
       {
-        id: `test_weather_${Date.now()}`,
+        id: `demo_weather_${Date.now()}`,
         type: 'weather',
-        title: 'DEMO: Severe Weather Warning',
-        message: 'Heavy rainfall and strong winds expected in your area within the next 2 hours. Take necessary precautions.',
-        severity: 'critical',
+        title: 'DEMO: Severe Thunderstorm Warning',
+        message: 'Demo alert: Severe thunderstorms with heavy rain and strong winds approaching your area.',
+        severity: 'high',
         location: {
           latitude: this.currentLocation.latitude,
           longitude: this.currentLocation.longitude,
@@ -589,82 +725,55 @@ class LocationAlertService {
         timestamp: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
         isActive: true,
-      },
-      {
-        id: `test_seismic_${Date.now()}`,
-        type: 'seismic',
-        title: 'DEMO: Earthquake Alert',
-        message: 'A magnitude 4.2 earthquake was detected 25km from your location. Monitor for aftershocks.',
-        severity: 'high',
-        location: {
-          latitude: this.currentLocation.latitude + 0.1,
-          longitude: this.currentLocation.longitude + 0.1,
-          radius: 50,
-        },
-        timestamp: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        isActive: true,
-      },
-      {
-        id: `test_flood_${Date.now()}`,
-        type: 'flood',
-        title: 'DEMO: Flash Flood Warning',
-        message: 'Flash flood warning issued for your area due to heavy rainfall. Avoid low-lying areas.',
-        severity: 'high',
-        location: {
-          latitude: this.currentLocation.latitude,
-          longitude: this.currentLocation.longitude,
-          radius: 15,
-        },
-        timestamp: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-        isActive: true,
+        dataSource: 'demo',
+        alertHash: `demo_weather_${Date.now()}`,
       }
     ];
 
-    await this.storeAlerts(testAlerts);
-    await this.processNewAlerts(testAlerts);
+    await this.storeAlerts(demoAlerts);
     
-    console.log('Test alerts created and notifications sent!');
-  }
-
-  // Schedule delayed test notification for demo
-  async scheduleDelayedTestNotification(delaySeconds: number = 30) {
-    console.log(`Scheduling test notification in ${delaySeconds} seconds...`);
-    
-    // Schedule a notification to be sent after delay
-    setTimeout(async () => {
-      const testAlert: LocationAlert = {
-        id: `delayed_test_${Date.now()}`,
-        type: 'evacuation',
-        title: 'DEMO: Emergency Evacuation Notice',
-        message: 'Immediate evacuation required due to emergency conditions in your area. Follow local authorities instructions.',
-        severity: 'critical',
-        location: {
-          latitude: this.currentLocation?.latitude || 0,
-          longitude: this.currentLocation?.longitude || 0,
-          radius: 5,
-        },
-        timestamp: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        isActive: true,
+    // Manually trigger notification with demo data
+    for (const alert of demoAlerts) {
+      const demoData = {
+        isDemo: true,
+        testing: true,
+        demoAlert: true,
+        weatherSeverity: 'high',
       };
 
-      await this.storeAlerts([testAlert]);
-      await this.triggerLocationAlert(testAlert);
-      
-      console.log('Delayed test notification sent!');
-    }, delaySeconds * 1000);
+      await NotificationService.scheduleLocationAlert(
+        alert.title,
+        alert.message,
+        'high',
+        alert.type,
+        `${alert.location.latitude.toFixed(2)}, ${alert.location.longitude.toFixed(2)}`,
+        demoData
+      );
+    }
     
-    return `Test notification scheduled for ${delaySeconds} seconds from now.`;
+    console.log('Demo alerts created (will only show once per session)');
   }
 
-  // Force refresh alerts (for manual testing)
-  async refreshAlerts() {
-    console.log('Manually refreshing alerts...');
-    if (this.currentLocation) {
-      await this.fetchLocationBasedAlerts(this.currentLocation);
-    }
+  // Get statistics about processed alerts
+  async getAlertStatistics() {
+    const alerts = await this.getAllAlerts();
+    const processedCount = this.processedAlerts.size;
+    
+    const stats = {
+      totalActiveAlerts: alerts.length,
+      processedAlertsCount: processedCount,
+      alertsByType: alerts.reduce((acc, alert) => {
+        acc[alert.type] = (acc[alert.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      alertsBySeverity: alerts.reduce((acc, alert) => {
+        acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    };
+
+    console.log('Alert statistics:', stats);
+    return stats;
   }
 
   // Clean up service

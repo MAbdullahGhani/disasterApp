@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTranslation } from "react-i18next"; // Import the hook
 
 const { width, height } = Dimensions.get("window");
 
@@ -24,9 +25,11 @@ interface SidebarMenuProps {
 }
 
 export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
+  const { t } = useTranslation(); // Initialize the translation function
   const { user, logout, isAuthenticated } = useAuth();
   const slideAnim = useRef(new Animated.Value(-width)).current;
   const navigation = useNavigation();
+
   useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: visible ? 0 : -width,
@@ -35,21 +38,25 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
   }, [visible]);
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          const result = await logout();
-          if (result.success) {
-            onClose();
-          } else {
-            Alert.alert("Error", "Failed to sign out");
-          }
+    Alert.alert(
+      t("sidebar.signOutTitle"),
+      t("sidebar.signOutMessage"),
+      [
+        { text: t("sidebar.cancel"), style: "cancel" },
+        {
+          text: t("sidebar.signOutTitle"),
+          style: "destructive",
+          onPress: async () => {
+            const result = await logout();
+            if (result.success) {
+              onClose();
+            } else {
+              Alert.alert(t("sidebar.errorTitle"), t("sidebar.signOutError"));
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleMenuItemPress = (screen: string) => {
@@ -83,14 +90,14 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
   );
 
   const getUserDisplayName = () => {
-    if (!user) return "Guest User";
-    return user.displayName || user.email || "Anonymous User";
+    if (!user) return t("sidebar.guestUser");
+    return user.displayName || user.email || t("sidebar.anonymousUser");
   };
 
   const getUserEmail = () => {
-    if (!user) return "Not signed in";
-    if (user.isAnonymous) return "Guest Account";
-    return user.email || "No email";
+    if (!user) return t("sidebar.notSignedIn");
+    if (user.isAnonymous) return t("sidebar.guestAccount");
+    return user.email || t("sidebar.noEmail");
   };
 
   return (
@@ -133,17 +140,17 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
               <>
                 <MenuItemButton
                   icon="log-in-outline"
-                  title={<ThemedText>Sign In</ThemedText>}
+                  title={t("sidebar.signIn")}
                   onPress={() => handleMenuItemPress("AuthScreen")}
                 />
                 <MenuItemButton
                   icon="person-add-outline"
-                  title={<ThemedText>Sign Up</ThemedText>}
+                  title={t("sidebar.signUp")}
                   onPress={() => handleMenuItemPress("AuthScreen")}
                 />
                 <MenuItemButton
-                  icon="person-add-outline"
-                  title={<ThemedText>Emergency Contacts</ThemedText>}
+                  icon="call-outline"
+                  title={t("sidebar.emergencyContacts")}
                   onPress={() => handleMenuItemPress("Emergency")}
                 />
               </>
@@ -151,28 +158,22 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
               <>
                 <MenuItemButton
                   icon="person-outline"
-                  title={<ThemedText>Profile</ThemedText>}
+                  title={t("sidebar.profile")}
                   onPress={() => handleMenuItemPress("Profile")}
                 />
                 <MenuItemButton
                   icon="settings-outline"
-                  title={<ThemedText>Settings</ThemedText>}
+                  title={t("sidebar.settings")}
                   onPress={() => handleMenuItemPress("Settings")}
                 />
-                {/* <MenuItemButton
-                  icon="help-circle-outline"
-                  title={<ThemedText>Help & Support</ThemedText>}
-                  onPress={() => handleMenuItemPress("Help")}
-                /> */}
                 <MenuItemButton
-                  icon="person-add-outline"
-                  title={<ThemedText>Emergency Contacts</ThemedText>}
+                  icon="call-outline"
+                  title={t("sidebar.emergencyContacts")}
                   onPress={() => handleMenuItemPress("Emergency")}
                 />
-
                 <MenuItemButton
                   icon="log-out-outline"
-                  title={<ThemedText>Sign Out</ThemedText>}
+                  title={t("sidebar.signOutTitle")}
                   onPress={handleLogout}
                   iconColor="#FF6B6B"
                 />
@@ -182,7 +183,7 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
 
           <ThemedView style={styles.footer}>
             <ThemedText style={styles.footerText}>
-              © Pakistan Disaster Ready v1.0
+              {t("sidebar.footerText")}
             </ThemedText>
           </ThemedView>
         </Animated.View>
@@ -275,7 +276,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginLeft: 15,
-    color: "#333",
   },
   menuDivider: {
     height: 8,

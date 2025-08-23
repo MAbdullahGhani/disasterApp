@@ -1,6 +1,70 @@
 {
+  "notifications": {
+    "headerTitle": "Alerts & Notifications",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "filterCritical": "Critical",
+    "markAllRead": "Mark all as read",
+    "emptyState": {
+      "noCriticalTitle": "No Critical Alerts",
+      "noNotificationsTitle": "No Notifications",
+      "allCaughtUp": "All caught up!",
+      "noCriticalMessage": "No critical alerts at this time. Stay safe!",
+      "defaultMessage": "Location-based alerts and notifications will appear here"
+    },
+    "time": {
+      "now": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    },
+    "priority": {
+      "critical": "CRITICAL",
+      "high": "HIGH",
+      "medium": "MED",
+      "low": "LOW"
+    }
+  },
+  "auth": {
+    "appTitle": "Pakistan Disaster Ready",
+    "subtitle": "Stay prepared, stay safe",
+    "welcomeBack": "Welcome Back!",
+    "createAccount": "Create Account",
+    "signInToContinue": "Sign in to continue",
+    "joinCommunity": "Join our community today",
+    "fullName": "Full Name",
+    "emailAddress": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "signIn": "Sign In",
+    "orContinueWith": "or continue with",
+    "continueWithGoogle": "Continue with Google",
+    "googleSignInInfo": "Google Sign-in available in development builds",
+    "dontHaveAccount": "Don't have an account? ",
+    "alreadyHaveAccount": "Already have an account? ",
+    "signUp": "Sign Up",
+    "alerts": {
+      "missingInfoTitle": "Missing Information",
+      "missingInfoMessage": "Please fill in all required fields",
+      "invalidEmailTitle": "Invalid Email",
+      "invalidEmailMessage": "Please enter a valid email address",
+      "missingNameMessage": "Please enter your full name",
+      "passwordMismatchTitle": "Password Mismatch",
+      "passwordMismatchMessage": "Passwords do not match",
+      "weakPasswordTitle": "Weak Password",
+      "weakPasswordMessage": "Password must be at least 6 characters long",
+      "successTitle": "Success",
+      "welcomeBackMessage": "Welcome back!",
+      "accountCreatedMessage": "Account created successfully!",
+      "authErrorTitle": "Authentication Error",
+      "authErrorMessage": "Please try again",
+      "unexpectedErrorTitle": "Error",
+      "unexpectedErrorMessage": "Something went wrong. Please try again.",
+      "googleSignInSuccess": "Welcome! Signed in with Google successfully",
+      "googleSignInFailedTitle": "Google Sign In Failed"
+    }
+  },
   "settings": "Settings",
-  "notifications": "Notifications",
   "pushNotifications": "Push Notifications",
   "receiveAlerts": "Receive alerts and updates",
   "emergencyAlerts": "Emergency Alerts",
@@ -51,6 +115,59 @@
   "areasMonitored": "Areas Monitored",
   "downloadMyData": "Download My Data",
   "deleteAccount": "Delete Account",
+  "warning": "Warning",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "ok": "OK",
+  "reset": "Reset",
+  "disable": "Disable",
+  "openSettings": "Open Settings",
+  "openBrowser": "Open Browser",
+  "notificationPermissionRequired": "Please enable notifications in system settings to receive alerts",
+  "locationPermissionRequired": "Please enable location access in system settings for location-based alerts",
+  "notificationsEnabled": "Push notifications have been enabled successfully",
+  "notificationsDisabled": "Push notifications have been disabled",
+  "notificationError": "Failed to configure notifications. Please try again.",
+  "locationServicesEnabled": "Location services have been enabled successfully",
+  "locationServicesDisabled": "Location services have been disabled",
+  "locationError": "Failed to configure location services. Please try again.",
+  "emergencyAlertsEnabled": "Emergency alerts have been enabled successfully",
+  "emergencyAlertsDisabled": "Emergency alerts have been disabled",
+  "emergencyAlertsDisabledWarning": "Disabling emergency alerts may put you at risk during natural disasters and critical situations. Are you sure you want to continue?",
+  "darkModeEnabled": "Dark mode has been enabled",
+  "lightModeEnabled": "Light mode has been enabled",
+  "themeChangeError": "Failed to change theme. Please try again.",
+  "storageCleared": "App storage has been cleared successfully",
+  "storageClearError": "Failed to clear storage. Please try again.",
+  "clearStorageConfirm": "This will delete all cached data and free up storage space. This action cannot be undone. Are you sure?",
+
+  "settingsReset": "All settings have been reset to their default values",
+  "resetError": "Failed to reset settings. Please try again.",
+  "resetSettingsConfirm": "This will reset all your preferences to default settings. This action cannot be undone. Are you sure?",
+
+  "privacyPolicyMessage": "This will open our privacy policy in your default browser. Do you want to continue?",
+  "appInfo": "App Information",
+  "buildNumber": "Build Number",
+  "lastUpdated": "Last Updated",
+  "sidebar": {
+    "signOutTitle": "Sign Out",
+    "signOutMessage": "Are you sure you want to sign out?",
+    "cancel": "Cancel",
+    "errorTitle": "Error",
+    "signOutError": "Failed to sign out",
+    "guestUser": "Guest User",
+    "anonymousUser": "Anonymous User",
+    "notSignedIn": "Not signed in",
+    "guestAccount": "Guest Account",
+    "noEmail": "No email",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "emergencyContacts": "Emergency Contacts",
+    "profile": "Profile",
+    "settings": "Settings",
+    "helpSupport": "Help & Support",
+    "footerText": "© Pakistan Disaster Ready v1.0"
+  },
   "statsScreen": {
     "header": "Stats Dashboard",
     "overallScore": {
@@ -122,7 +239,7 @@
     "consistencyStreaks": "Consistency Streaks",
     "specialAchievements": "Special Achievements",
     "emptyState": "Complete tasks and take quizzes to start earning badges!",
-    "defaultUserInitial": "A"
+    "defaultUserInitial": "G"
   },
   "progressScreen": {
     "title": "Progress Overview",
@@ -619,6 +736,14 @@
     }
   },
   "home": {
+    "weatherAlerts": {
+      "rainWarningTitle": "Rain Warning",
+      "rainWarningMessage": "Chance of rain ({{precipitation}}%) expected in {{city}} within 24 hours. Consider taking an umbrella.",
+      "hotWeatherTitle": "Hot Weather Alert",
+      "hotWeatherMessage": "High temperatures up to {{temp}}°C expected in {{city}}. Stay hydrated and avoid prolonged sun exposure.",
+      "coldWeatherTitle": "Cold Weather Notice",
+      "coldWeatherMessage": "Cool temperatures down to {{temp}}°C expected in {{city}}. Dress warmly."
+    },
     "headerTitle": "Disaster Ready",
     "searchPlaceholder": "Search for any city...",
     "searchingText": "Searching...",
@@ -731,5 +856,5 @@
       "source": "Rescue Service"
     }
   },
-  "cityLang":"en"
+  "cityLang": "en"
 }

@@ -14,6 +14,7 @@ import {
     RefreshControl,
 } from 'react-native';
 import NotificationService, { NotificationData } from '@/services/notificationService';
+import { useTranslation } from 'react-i18next'; // Import the hook
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,6 +24,7 @@ interface NotificationDrawerProps {
 }
 
 export default function NotificationDrawer({ visible, onClose }: NotificationDrawerProps) {
+    const { t } = useTranslation(); // Initialize the translation function
     const slideAnim = useRef(new Animated.Value(width)).current;
     const [filter, setFilter] = useState<'all' | 'unread' | 'emergency'>('all');
     const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -58,16 +60,16 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
 
     const getFilteredNotifications = () => {
         switch (filter) {
-            case 'unread': 
+            case 'unread':
                 return notifications.filter(n => !n.read);
-            case 'emergency': 
-                return notifications.filter(n => 
-                    n.type === 'emergency' || 
-                    n.type === 'evacuation' || 
-                    n.priority === 'critical' || 
+            case 'emergency':
+                return notifications.filter(n =>
+                    n.type === 'emergency' ||
+                    n.type === 'evacuation' ||
+                    n.priority === 'critical' ||
                     n.priority === 'high'
                 );
-            default: 
+            default:
                 return notifications;
         }
     };
@@ -100,7 +102,7 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
     };
 
     const getNotificationIcon = (type: string) => {
-        const icons = {
+        const icons: { [key: string]: any } = {
             emergency: 'warning',
             weather: 'rainy',
             seismic: 'pulse',
@@ -110,15 +112,14 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
             info: 'information-circle',
             success: 'checkmark-circle',
         };
-        return icons[type as keyof typeof icons] || 'notifications';
+        return icons[type] || 'notifications';
     };
 
     const getNotificationColor = (type: string, priority: string) => {
-        // Priority-based colors take precedence
         if (priority === 'critical') return '#FF0000';
         if (priority === 'high') return '#FF4444';
         
-        const colors = {
+        const colors: { [key: string]: string } = {
             emergency: '#FF4444',
             weather: '#FF9500',
             seismic: '#9C27B0',
@@ -128,17 +129,17 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
             info: '#4ECDC4',
             success: '#4CAF50',
         };
-        return colors[type as keyof typeof colors] || '#4ECDC4';
+        return colors[type] || '#4ECDC4';
     };
 
     const getPriorityBadge = (priority: string) => {
-        const badges = {
-            critical: { text: 'CRITICAL', color: '#FF0000' },
-            high: { text: 'HIGH', color: '#FF4444' },
-            medium: { text: 'MED', color: '#FF9500' },
-            low: { text: 'LOW', color: '#4CAF50' },
+        const badges: { [key: string]: { text: string, color: string } } = {
+            critical: { text: t('notifications.priority.critical'), color: '#FF0000' },
+            high: { text: t('notifications.priority.high'), color: '#FF4444' },
+            medium: { text: t('notifications.priority.medium'), color: '#FF9500' },
+            low: { text: t('notifications.priority.low'), color: '#4CAF50' },
         };
-        return badges[priority as keyof typeof badges] || badges.medium;
+        return badges[priority] || badges.medium;
     };
 
     const formatTimestamp = (timestamp: string) => {
@@ -146,14 +147,14 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
         const now = new Date();
         const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
         
-        if (diffInMinutes < 1) return 'Just now';
-        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        if (diffInMinutes < 1) return t('notifications.time.now');
+        if (diffInMinutes < 60) return t('notifications.time.minutesAgo', { count: diffInMinutes });
         
         const diffInHours = Math.floor(diffInMinutes / 60);
-        if (diffInHours < 24) return `${diffInHours}h ago`;
+        if (diffInHours < 24) return t('notifications.time.hoursAgo', { count: diffInHours });
         
         const diffInDays = Math.floor(diffInHours / 24);
-        if (diffInDays < 7) return `${diffInDays}d ago`;
+        if (diffInDays < 7) return t('notifications.time.daysAgo', { count: diffInDays });
         
         return date.toLocaleDateString();
     };
@@ -235,7 +236,6 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
                     </TouchableOpacity>
                 </ThemedView>
                 
-                {/* Emergency notification indicator */}
                 {item.priority === 'critical' && (
                     <ThemedView style={styles.emergencyIndicator} />
                 )}
@@ -252,7 +252,7 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
                         <View style={styles.headerContent}>
                             <View style={styles.headerLeft}>
                                 <Ionicons name="notifications" size={22} color="#FFF" />
-                                <ThemedText style={styles.headerTitle}>Alerts & Notifications</ThemedText>
+                                <ThemedText style={styles.headerTitle}>{t('notifications.headerTitle')}</ThemedText>
                                 {unreadCount > 0 && (
                                     <View style={styles.badge}>
                                         <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
@@ -265,16 +265,16 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
                         </View>
 
                         <View style={styles.filtersContainer}>
-                            <FilterButton title="All" value="all" active={filter === 'all'} />
-                            <FilterButton title="Unread" value="unread" active={filter === 'unread'} />
-                            <FilterButton title="Critical" value="emergency" active={filter === 'emergency'} />
+                            <FilterButton title={t('notifications.filterAll')} value="all" active={filter === 'all'} />
+                            <FilterButton title={t('notifications.filterUnread')} value="unread" active={filter === 'unread'} />
+                            <FilterButton title={t('notifications.filterCritical')} value="emergency" active={filter === 'emergency'} />
                         </View>
 
                         {unreadCount > 0 && (
                             <View style={styles.actionsBar}>
                                 <TouchableOpacity style={styles.actionButton} onPress={markAllAsRead}>
                                     <Ionicons name="checkmark-done" size={16} color="#FFF" />
-                                    <ThemedText style={styles.actionText}>Mark all as read</ThemedText>
+                                    <ThemedText style={styles.actionText}>{t('notifications.markAllRead')}</ThemedText>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -289,14 +289,14 @@ export default function NotificationDrawer({ visible, onClose }: NotificationDra
                                     color="#CCC" 
                                 />
                                 <ThemedText style={styles.emptyTitle}>
-                                    {filter === 'emergency' ? 'No Critical Alerts' : 'No Notifications'}
+                                    {filter === 'emergency' ? t('notifications.emptyState.noCriticalTitle') : t('notifications.emptyState.noNotificationsTitle')}
                                 </ThemedText>
                                 <ThemedText style={styles.emptyMessage}>
                                     {filter === 'unread' 
-                                        ? 'All caught up!' 
+                                        ? t('notifications.emptyState.allCaughtUp') 
                                         : filter === 'emergency'
-                                        ? 'No critical alerts at this time. Stay safe!'
-                                        : 'Location-based alerts and notifications will appear here'
+                                        ? t('notifications.emptyState.noCriticalMessage')
+                                        : t('notifications.emptyState.defaultMessage')
                                     }
                                 </ThemedText>
                             </View>

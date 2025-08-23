@@ -19,10 +19,10 @@ export default function TabTwoScreen() {
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
   const getUserDisplayName = () => {
-    if (!user) return "A";
+    if (!user) return "G";
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return "A";
+    return "G";
   };
   const renderHeader = () => (
     <ThemedView style={styles.header}>

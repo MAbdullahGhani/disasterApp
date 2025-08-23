@@ -2,9 +2,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useColorScheme, I18nManager } from "react-native";
+import { useColorScheme, I18nManager, Appearance } from "react-native";
 import {
   Alert,
   ScrollView,
@@ -12,7 +12,11 @@ import {
   Switch,
   TouchableOpacity,
   View,
+  Linking,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 
 import LanguageSelector from "../components/LanguageSelector";
 
@@ -40,6 +44,15 @@ interface SettingItemProps {
 interface SectionHeaderProps {
   title: string;
 }
+
+// Storage keys for settings
+const STORAGE_KEYS = {
+  NOTIFICATIONS: 'settings_notifications',
+  LOCATION_SERVICES: 'settings_location_services',
+  EMERGENCY_ALERTS: 'settings_emergency_alerts',
+  DARK_MODE: 'settings_dark_mode',
+  ALL_SETTINGS: 'all_settings'
+};
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
@@ -73,8 +86,243 @@ export default function SettingsScreen() {
 
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
 
-  const handleSettingToggle = (key: keyof SettingsState, value: boolean) => {
+  // Load settings from storage on component mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // Save settings to storage whenever settings change
+  useEffect(() => {
+    saveSettings();
+  }, [settings]);
+
+  const loadSettings = async () => {
+    try {
+      const savedSettings = await AsyncStorage.getItem(STORAGE_KEYS.ALL_SETTINGS);
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.ALL_SETTINGS, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const handleSettingToggle = async (key: keyof SettingsState, value: boolean) => {
+    // Handle specific setting logic
+    switch (key) {
+      case 'notifications':
+        await handleNotificationToggle(value);
+        break;
+      case 'locationServices':
+        await handleLocationToggle(value);
+        break;
+      case 'emergencyAlerts':
+        await handleEmergencyAlertsToggle(value);
+        break;
+      case 'darkMode':
+        await handleDarkModeToggle(value);
+        break;
+    }
+    
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Request notification permissions
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        if (finalStatus !== 'granted') {
+          Alert.alert(
+            t('permissionRequired'),
+            t('notificationPermissionRequired'),
+            [
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('openSettings'), onPress: () => Linking.openSettings() }
+            ]
+          );
+          return;
+        }
+        
+        // Configure notification handler
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+          }),
+        });
+        
+        Alert.alert(t('success'), t('notificationsEnabled'));
+      } else {
+        Alert.alert(t('success'), t('notificationsDisabled'));
+      }
+    } catch (error) {
+      console.error('Error handling notifications:', error);
+      Alert.alert(t('error'), t('notificationError'));
+    }
+  };
+
+  const handleLocationToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Request location permissions
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        
+        if (status !== 'granted') {
+          Alert.alert(
+            t('permissionRequired'),
+            t('locationPermissionRequired'),
+            [
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('openSettings'), onPress: () => Linking.openSettings() }
+            ]
+          );
+          return;
+        }
+        
+        Alert.alert(t('success'), t('locationServicesEnabled'));
+      } else {
+        Alert.alert(t('success'), t('locationServicesDisabled'));
+      }
+    } catch (error) {
+      console.error('Error handling location services:', error);
+      Alert.alert(t('error'), t('locationError'));
+    }
+  };
+
+  const handleEmergencyAlertsToggle = async (enabled: boolean) => {
+    if (enabled) {
+      Alert.alert(t('success'), t('emergencyAlertsEnabled'));
+    } else {
+      Alert.alert(
+        t('warning'),
+        t('emergencyAlertsDisabledWarning'),
+        [
+          { text: t('cancel'), style: 'cancel' },
+          { 
+            text: t('disable'), 
+            style: 'destructive',
+            onPress: () => Alert.alert(t('success'), t('emergencyAlertsDisabled'))
+          }
+        ]
+      );
+    }
+  };
+
+  const handleDarkModeToggle = async (enabled: boolean) => {
+    try {
+      // Apply theme change
+      Appearance.setColorScheme(enabled ? 'dark' : 'light');
+      Alert.alert(t('success'), enabled ? t('darkModeEnabled') : t('lightModeEnabled'));
+    } catch (error) {
+      console.error('Error changing theme:', error);
+      Alert.alert(t('error'), t('themeChangeError'));
+    }
+  };
+
+  const handleClearStorage = () => {
+    Alert.alert(
+      t("clearStorage"),
+      t("clearStorageConfirm"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        { 
+          text: t("confirm"), 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Clear app cache/storage
+              await AsyncStorage.multiRemove([
+                STORAGE_KEYS.ALL_SETTINGS,
+                // Add other storage keys you want to clear
+              ]);
+              Alert.alert(t('success'), t('storageCleared'));
+            } catch (error) {
+              console.error('Error clearing storage:', error);
+              Alert.alert(t('error'), t('storageClearError'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleResetSettings = () => {
+    Alert.alert(
+      t("resetSettings"),
+      t("resetSettingsConfirm"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        { 
+          text: t("reset"), 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              // Reset to default settings
+              const defaultSettings: SettingsState = {
+                notifications: true,
+                locationServices: true,
+                emergencyAlerts: true,
+                darkMode: false,
+              };
+              
+              setSettings(defaultSettings);
+              await AsyncStorage.setItem(STORAGE_KEYS.ALL_SETTINGS, JSON.stringify(defaultSettings));
+              
+              // Reset theme to light mode
+              Appearance.setColorScheme('light');
+              
+              Alert.alert(t('success'), t('settingsReset'));
+            } catch (error) {
+              console.error('Error resetting settings:', error);
+              Alert.alert(t('error'), t('resetError'));
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePrivacyPolicy = () => {
+    Alert.alert(
+      t('privacyPolicy'),
+      t('privacyPolicyMessage'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('openBrowser'), 
+          onPress: () => {
+            // Replace with your actual privacy policy URL
+            Linking.openURL('https://yourapp.com/privacy-policy');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleAppVersion = () => {
+    Alert.alert(
+      t('appInfo'),
+      `${t('appVersion')}: 1.0.0\n${t('buildNumber')}: 001\n${t('lastUpdated')}: ${new Date().toLocaleDateString()}`,
+      [{ text: t('ok'), style: 'default' }]
+    );
   };
 
   const SettingItem: React.FC<SettingItemProps> = ({
@@ -234,16 +482,7 @@ export default function SettingsScreen() {
             title={<ThemedText>{t("clearStorage")}</ThemedText>}
             description={t("freeUpStorage")}
             showToggle={false}
-            onPress={() => {
-              Alert.alert(
-                t("clearStorage"),
-                t("clearStorageConfirm"),
-                [
-                  { text: t("cancel"), style: "cancel" },
-                  { text: t("confirm"), onPress: () => {} }
-                ]
-              );
-            }}
+            onPress={handleClearStorage}
           />
         </ThemedView>
 
@@ -272,13 +511,13 @@ export default function SettingsScreen() {
             title={<ThemedText>{t("appVersion")}</ThemedText>}
             description="v1.0.0"
             showToggle={false}
-            onPress={() => {}}
+            onPress={handleAppVersion}
           />
           <SettingItem
             icon="shield-outline"
             title={<ThemedText>{t("privacyPolicy")}</ThemedText>}
             showToggle={false}
-            onPress={() => {}}
+            onPress={handlePrivacyPolicy}
           />
         </ThemedView>
 
@@ -289,16 +528,7 @@ export default function SettingsScreen() {
             title={<ThemedText>{t("resetSettings")}</ThemedText>}
             description={t("resetSettingsDesc")}
             showToggle={false}
-            onPress={() => {
-              Alert.alert(
-                t("resetSettings"),
-                t("resetSettingsConfirm"),
-                [
-                  { text: t("cancel"), style: "cancel" },
-                  { text: t("reset"), style: "destructive", onPress: () => {} }
-                ]
-              );
-            }}
+            onPress={handleResetSettings}
             iconColor="#FF6B6B"
           />
         </ThemedView>

@@ -1,6 +1,112 @@
 {
+  "notifications": {
+    "headerTitle": "انتباہات اور اطلاعات",
+    "filterAll": "سب",
+    "filterUnread": "بغیر پڑھی",
+    "filterCritical": "انتہائی اہم",
+    "markAllRead": "سب کو پڑھا ہوا نشان زد کریں",
+    "emptyState": {
+      "noCriticalTitle": "کوئی اہم انتباہ نہیں",
+      "noNotificationsTitle": "کوئی اطلاعات نہیں",
+      "allCaughtUp": "سب کچھ پڑھ لیا ہے!",
+      "noCriticalMessage": "اس وقت کوئی اہم انتباہ نہیں ہے۔ محفوظ رہیں!",
+      "defaultMessage": "مقام پر مبنی انتباہات اور اطلاعات یہاں ظاہر ہوں گی"
+    },
+    "time": {
+      "now": "ابھی ابھی",
+      "minutesAgo": "{{count}} منٹ پہلے",
+      "hoursAgo": "{{count}} گھنٹے پہلے",
+      "daysAgo": "{{count}} دن پہلے"
+    },
+    "priority": {
+      "critical": "انتہائی اہم",
+      "high": "اہم",
+      "medium": "درمیانہ",
+      "low": "کم"
+    }
+  },
+  "auth": {
+    "appTitle": "پاکستان ڈیزاسٹر ریڈی",
+    "subtitle": "تیار رہیں، محفوظ رہیں",
+    "welcomeBack": "خوش آمدید!",
+    "createAccount": "اکاؤنٹ بنائیں",
+    "signInToContinue": "جاری رکھنے کے لیے سائن ان کریں",
+    "joinCommunity": "آج ہی ہماری کمیونٹی میں شامل ہوں",
+    "fullName": "پورا نام",
+    "emailAddress": "ای میل ایڈریس",
+    "password": "پاس ورڈ",
+    "confirmPassword": "پاس ورڈ کی تصدیق کریں",
+    "signIn": "سائن ان کریں",
+    "orContinueWith": "یا اس کے ساتھ جاری رکھیں",
+    "continueWithGoogle": "گوگل کے ساتھ جاری رکھیں",
+    "googleSignInInfo": "گوگل سائن ان ڈیولپمنٹ بلڈز میں دستیاب ہے",
+    "dontHaveAccount": "اکاؤنٹ نہیں ہے؟ ",
+    "alreadyHaveAccount": "پہلے سے اکاؤنٹ ہے؟ ",
+    "signUp": "سائن اپ کریں",
+    "alerts": {
+      "missingInfoTitle": "نامکمل معلومات",
+      "missingInfoMessage": "براہ کرم تمام ضروری خانے پر کریں",
+      "invalidEmailTitle": "غلط ای میل",
+      "invalidEmailMessage": "براہ کرم ایک درست ای میل ایڈریس درج کریں",
+      "missingNameMessage": "براہ کرم اپنا پورا نام درج کریں",
+      "passwordMismatchTitle": "پاس ورڈ میچ نہیں ہوا",
+      "passwordMismatchMessage": "پاس ورڈز ایک جیسے نہیں ہیں",
+      "weakPasswordTitle": "کمزور پاس ورڈ",
+      "weakPasswordMessage": "پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے",
+      "successTitle": "کامیابی",
+      "welcomeBackMessage": "خوش آمدید!",
+      "accountCreatedMessage": "اکاؤنٹ کامیابی سے بن گیا!",
+      "authErrorTitle": "توثیق میں خرابی",
+      "authErrorMessage": "براہ کرم دوبارہ کوشش کریں",
+      "unexpectedErrorTitle": "خرابی",
+      "unexpectedErrorMessage": "کچھ غلط ہو گیا. براہ کرم دوبارہ کوشش کریں.",
+      "googleSignInSuccess": "خوش آمدید! گوگل کے ساتھ کامیابی سے سائن ان ہوگئے",
+      "googleSignInFailedTitle": "گوگل سائن ان ناکام"
+    }
+  },
+  "warning": "انتباہ",
+  "cancel": "منسوخ",
+  "confirm": "تصدیق",
+  "ok": "ٹھیک ہے",
+  "reset": "ری سیٹ",
+  "disable": "بند کریں",
+  "openSettings": "سیٹنگز کھولیں",
+  "openBrowser": "براؤزر کھولیں",
+
+  "notificationPermissionRequired": "الرٹس حاصل کرنے کے لیے سسٹم سیٹنگز میں نوٹیفیکیشن فعال کریں",
+  "locationPermissionRequired": "لوکیشن بیسڈ الرٹس کے لیے سسٹم سیٹنگز میں لوکیشن تک رسائی فعال کریں",
+
+  "notificationsEnabled": "پش نوٹیفیکیشن کامیابی سے فعال ہو گئی",
+  "notificationsDisabled": "پش نوٹیفیکیشن غیر فعال کر دی گئی",
+  "notificationError": "نوٹیفیکیشن کنفیگر کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+
+  "locationServicesEnabled": "لوکیشن سروسز کامیابی سے فعال ہو گئیں",
+  "locationServicesDisabled": "لوکیشن سروسز غیر فعال کر دی گئیں",
+  "locationError": "لوکیشن سروسز کنفیگر کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+
+  "emergencyAlertsEnabled": "ہنگامی الرٹس کامیابی سے فعال ہو گئے",
+  "emergencyAlertsDisabled": "ہنگامی الرٹس غیر فعال کر دیے گئے",
+  "emergencyAlertsDisabledWarning": "ہنگامی الرٹس کو غیر فعال کرنا قدرتی آفات اور اہم حالات میں آپ کو خطرے میں ڈال سکتا ہے۔ کیا آپ واقعی جاری رکھنا چاہتے ہیں؟",
+
+  "darkModeEnabled": "ڈارک موڈ فعال کر دیا گیا",
+  "lightModeEnabled": "لائٹ موڈ فعال کر دیا گیا",
+  "themeChangeError": "تھیم تبدیل کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+
+  "storageCleared": "ایپ اسٹوریج کامیابی سے صاف کر دی گئی",
+  "storageClearError": "اسٹوریج صاف کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+  "clearStorageConfirm": "یہ تمام محفوظ شدہ ڈیٹا کو حذف کر دے گا اور اسٹوریج کی جگہ خالی کر دے گا۔ یہ عمل واپس نہیں ہو سکتا۔ کیا آپ یقین رکھتے ہیں؟",
+
+  "settingsReset": "تمام سیٹنگز کو ان کی ڈیفالٹ ویلیوز پر ری سیٹ کر دیا گیا",
+  "resetError": "سیٹنگز ری سیٹ کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+  "resetSettingsConfirm": "یہ آپ کی تمام ترجیحات کو ڈیفالٹ سیٹنگز پر ری سیٹ کر دے گا۔ یہ عمل واپس نہیں ہو سکتا۔ کیا آپ یقین رکھتے ہیں؟",
+
+  "privacyPolicyMessage": "یہ آپ کے ڈیفالٹ براؤزر میں ہماری پرائیویسی پالیسی کھولے گا۔ کیا آپ جاری رکھنا چاہتے ہیں؟",
+
+  "appInfo": "ایپ کی معلومات",
+  "buildNumber": "بلڈ نمبر",
+  "lastUpdated": "آخری اپڈیٹ",
+
   "settings": "سیٹنگز",
-  "notifications": "نوٹیفیکیشنز",
   "pushNotifications": "پش نوٹیفیکیشنز",
   "receiveAlerts": "الرٹس اور اپڈیٹس وصول کریں",
   "emergencyAlerts": "ہنگامی الرٹس",
@@ -51,6 +157,25 @@
   "areasMonitored": "نگرانی شدہ علاقے",
   "downloadMyData": "میرا ڈیٹا ڈاؤن لوڈ کریں",
   "deleteAccount": "اکاؤنٹ حذف کریں",
+  "sidebar": {
+    "signOutTitle": "سائن آوٹ",
+    "signOutMessage": "کیا آپ واقعی سائن آوٹ کرنا چاہتے ہیں؟",
+    "cancel": "منسوخ کریں",
+    "errorTitle": "خرابی",
+    "signOutError": "سائن آوٹ کرنے میں ناکامی",
+    "guestUser": "مہمان صارف",
+    "anonymousUser": "گمنام صارف",
+    "notSignedIn": "سائن ان نہیں ہیں۔",
+    "guestAccount": "مہمان اکاؤنٹ",
+    "noEmail": "کوئی ای میل نہیں",
+    "signIn": "سائن ان کریں",
+    "signUp": "سائن اپ کریں",
+    "emergencyContacts": "ہنگامی رابطے",
+    "profile": "پروفائل",
+    "settings": "ترتیبات",
+    "helpSupport": "مدد اور معاونت",
+    "footerText": "© پاکستان ڈیزاسٹر ریڈی v1.0"
+  },
   "statsScreen": {
     "header": "اعداد و شمار کا ڈیش بورڈ",
     "overallScore": {
@@ -122,11 +247,11 @@
     "consistencyStreaks": "مستقل مزاجی کے سلسلے",
     "specialAchievements": "خصوصی کامیابیاں",
     "emptyState": "بیجز حاصل کرنا شروع کرنے کے لیے ٹاسکس مکمل کریں اور کوئزز دیں!",
-    "defaultUserInitial": "گ"
+    "defaultUserInitial": "G"
   },
   "progressScreen": {
     "title": "پیشرفت کا جائزہ",
-    "defaultUserInitial": "م",
+    "defaultUserInitial": "G",
     "overallPreparedness": "مجموعی تیاری",
     "preparednessMessage": {
       "high": "بہترین کام! آپ تیار ہونے کی راہ پر گامزن ہیں۔",
@@ -624,6 +749,14 @@
     }
   },
   "home": {
+    "weatherAlerts": {
+      "rainWarningTitle": "بارش کا انتباہ",
+      "rainWarningMessage": "{{city}} میں 24 گھنٹوں کے اندر بارش کا امکان ({{precipitation}}%) ہے۔ چھتری ساتھ رکھنے پر غور کریں۔",
+      "hotWeatherTitle": "گرم موسم کا الرٹ",
+      "hotWeatherMessage": "{{city}} میں درجہ حرارت {{temp}}°C تک بڑھنے کی توقع ہے۔ ہائیڈریٹ رہیں اور زیادہ دیر دھوپ میں رہنے سے گریز کریں۔",
+      "coldWeatherTitle": "سرد موسم کا نوٹس",
+      "coldWeatherMessage": "{{city}} میں درجہ حرارت {{temp}}°C تک گرنے کی توقع ہے۔ گرم کپڑے پہنیں۔"
+    },
     "headerTitle": "آفت کے لیے تیار",
     "searchPlaceholder": "کسی بھی شہر کو تلاش کریں...",
     "searchingText": "تلاش کیا جا رہا ہے...",

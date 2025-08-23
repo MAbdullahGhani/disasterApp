@@ -348,10 +348,10 @@ export default function QuizScreen() {
   };
 
   const getUserDisplayName = () => {
-    if (!user) return "A";
+    if (!user) return "G";
     if (user.displayName) return user.displayName.charAt(0).toUpperCase();
     if (user.email) return user.email.charAt(0).toUpperCase();
-    return "A";
+    return "G";
   };
 
   const TopicCard = ({ topic, index }: { topic: QuizTopic; index: number }) => {

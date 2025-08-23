@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "PDR - Disaster Ready",
+    "name": "PDR",
     "owner": "abdullah797",
     "slug": "disasterApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Pdr_logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "disasterapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.abdullah797.disasterapp",
+      "bundleIdentifier": "com.anonymous.disasterApp",
       "buildNumber": "1.0.1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
@@ -30,15 +30,14 @@
             ]
           },
           {
-            "CFBundleURLName": "expo-auth-session", 
-            "CFBundleURLSchemes": [
-              "disasterapp"
-            ]
+            "CFBundleURLName": "expo-auth-session",
+            "CFBundleURLSchemes": ["disasterapp"]
           }
         ]
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -52,13 +51,13 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Pdr_logo.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "icon": "./assets/images/Pdr_logo.png",
       "edgeToEdgeEnabled": true,
-      "package": "com.abdullah797.disasterapp",
+      "package": "com.anonymous.disasterApp",
       "versionCode": 2,
+
       "intentFilters": [
         {
           "action": "VIEW",
@@ -67,10 +66,7 @@
               "scheme": "disasterapp"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -80,6 +76,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "@react-native-google-signin/google-signin",
         {
@@ -100,7 +98,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/Pdr_logo.png",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"

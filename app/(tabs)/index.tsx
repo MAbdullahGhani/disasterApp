@@ -1,4 +1,4 @@
-// HomeScreen.tsx - Updated with i18n for localization
+// HomeScreen.tsx - Updated with i18n for localization and Expo compatibility
 import Sidebar from "@/components/SideBar";
 import { ThemedInput } from "@/components/ThemedInput";
 import { ThemedText } from "@/components/ThemedText";
@@ -6,9 +6,11 @@ import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
 import useDebouncedSearch from "@/hooks/useDebounce";
 import { MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
+import * as Device from "expo-device";
 import * as Location from "expo-location";
 import { XMLParser } from "fast-xml-parser";
 import { useEffect, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
   Alert,
@@ -24,7 +26,37 @@ import { useTranslation } from "react-i18next"; // Import the hook
 // Import our services
 import NotificationDrawer from "@/components/NotificationSidebar";
 import locationAlertService from "@/services/locationAlertService";
-import NotificationService, { NotificationData } from "@/services/notificationService";
+import NotificationService, {
+  NotificationData,
+} from "@/services/notificationService";
+import { TFunction } from "i18next";
+
+// Helper function to detect if we're in Expo Go
+const isExpoGo = () => {
+  try {
+    return __DEV__ && !Device.isDevice;
+  } catch {
+    return false;
+  }
+};
+
+// Helper function to check if FCM is available
+const isFCMAvailable = () => {
+  try {
+    // Check if we're in Expo Go
+    if (isExpoGo()) {
+      console.log("Running in Expo Go - FCM not available");
+      return false;
+    }
+
+    // Check if Firebase is available (will throw if not linked)
+    require.resolve('@react-native-firebase/messaging');
+    return true;
+  } catch (error) {
+    console.log("Firebase messaging not available:", error.message);
+    return false;
+  }
+};
 
 // --- Constants ---
 const PAKISTAN_BOUNDS = {
@@ -88,19 +120,27 @@ export default function HomeScreen() {
   const [loadingWeather, setLoadingWeather] = useState(true);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [seismicAlerts, setSeismicAlerts] = useState<AlertType[]>([]);
-  const [pakistanFloodAlerts, setPakistanFloodAlerts] = useState<AlertType[]>([]);
-  const [internationalFloodAlerts, setInternationalFloodAlerts] = useState<AlertType[]>([]);
+  const [pakistanFloodAlerts, setPakistanFloodAlerts] = useState<AlertType[]>(
+    []
+  );
+  const [internationalFloodAlerts, setInternationalFloodAlerts] = useState<
+    AlertType[]
+  >([]);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
-  const [disasterResources, setDisasterResources] = useState<DisasterResource[]>([]);
+  const [disasterResources, setDisasterResources] = useState<
+    DisasterResource[]
+  >([]);
   const [notificationCount, setNotificationCount] = useState(0);
   const [locationAlerts, setLocationAlerts] = useState([]);
   const [isLocationInitialized, setIsLocationInitialized] = useState(false);
+  const [fcmAvailable, setFcmAvailable] = useState(false);
 
   const { user } = useAuth();
-  const { suggestions: citySuggestions, loading: loadingSuggestions } = useDebouncedSearch(searchQuery);
+  const { suggestions: citySuggestions, loading: loadingSuggestions } =
+    useDebouncedSearch(searchQuery);
   const appState = useRef(AppState.currentState);
 
   // --- Effects ---
@@ -108,54 +148,86 @@ export default function HomeScreen() {
     initializeServices();
     loadInitialData();
     
+    // Initialize FCM only if available
+    initializeFCMIfAvailable();
+
     const handleAppStateChange = (nextAppState: string) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
         refreshLocationData();
         updateNotificationCount();
       }
       appState.current = nextAppState;
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
     return () => {
       subscription?.remove();
       cleanup();
     };
   }, []);
 
+  // Initialize FCM if available
+  const initializeFCMIfAvailable = async () => {
+    try {
+      const available = isFCMAvailable();
+      setFcmAvailable(available);
+
+      if (available) {
+        console.log("FCM is available, initializing...");
+        // Dynamic import to avoid loading Firebase in Expo Go
+        const messaging = await import('@react-native-firebase/messaging');
+        
+        // Get FCM token
+        const token = await messaging.default().getToken();
+        console.log("FCM Token:", token.substring(0, 20) + "...");
+      } else {
+        console.log("FCM not available - using Expo notifications only");
+      }
+    } catch (error) {
+      console.log("FCM initialization error:", error.message);
+      setFcmAvailable(false);
+    }
+  };
+
   // Initialize services
   const initializeServices = async () => {
     try {
-      console.log('Initializing services...');
-      
+      console.log("Initializing services...");
+
       await NotificationService.initialize((notification: NotificationData) => {
         updateNotificationCount();
-        console.log('New notification received in app:', notification.title);
-        
-        if (notification.priority === 'critical' && appState.current === 'active') {
-          Alert.alert(
-            t('alerts.criticalTitle'),
-            notification.message,
-            [
-              { text: t('alerts.dismiss'), style: "cancel" },
-              { text: t('alerts.viewDetails'), onPress: () => setNotiSidebarVisible(true) }
-            ]
-          );
+        console.log("New notification received in app:", notification.title);
+
+        if (
+          notification.priority === "critical" &&
+          appState.current === "active"
+        ) {
+          Alert.alert(t("alerts.criticalTitle"), notification.message, [
+            { text: t("alerts.dismiss"), style: "cancel" },
+            {
+              text: t("alerts.viewDetails"),
+              onPress: () => setNotiSidebarVisible(true),
+            },
+          ]);
         }
       });
 
       await locationAlertService.initialize();
       setIsLocationInitialized(true);
-      
-      console.log('Services initialized successfully');
+
+      console.log("Services initialized successfully");
     } catch (error) {
-      console.error('Error initializing services:', error);
-      Alert.alert(
-        t('alerts.initErrorTitle'),
-        t('alerts.initErrorMessage'),
-        [{ text: t('alerts.ok') }]
-      );
+      console.error("Error initializing services:", error);
+      Alert.alert(t("alerts.initErrorTitle"), t("alerts.initErrorMessage"), [
+        { text: t("alerts.ok") },
+      ]);
     }
   };
 
@@ -164,22 +236,22 @@ export default function HomeScreen() {
     try {
       const count = await NotificationService.getUnreadCount();
       setNotificationCount(count);
-      console.log('Notification count updated:', count);
+      console.log("Notification count updated:", count);
     } catch (error) {
-      console.error('Error updating notification count:', error);
+      console.error("Error updating notification count:", error);
     }
   };
 
   // Refresh location-based data
   const refreshLocationData = async () => {
     try {
-      console.log('Refreshing location data...');
+      console.log("Refreshing location data...");
       const alerts = await locationAlertService.getAllAlerts();
       setLocationAlerts(alerts);
       await locationAlertService.refreshAlerts();
       await updateNotificationCount();
     } catch (error) {
-      console.error('Error refreshing location data:', error);
+      console.error("Error refreshing location data:", error);
     }
   };
 
@@ -192,8 +264,8 @@ export default function HomeScreen() {
   // --- Data Fetching ---
   const loadInitialData = async () => {
     setAlertsLoading(true);
-    console.log('Loading initial data...');
-    
+    console.log("Loading initial data...");
+
     await Promise.all([
       requestLocationAndFetchWeather(),
       fetchSeismicData(),
@@ -201,7 +273,7 @@ export default function HomeScreen() {
       loadDisasterResources(),
       updateNotificationCount(),
     ]);
-    
+
     setTimeout(async () => {
       await refreshLocationData();
       setAlertsLoading(false);
@@ -212,36 +284,36 @@ export default function HomeScreen() {
     const resources: DisasterResource[] = [
       {
         id: "1",
-        title: t('resources.ndma.title'),
-        description: t('resources.ndma.description'),
-        source: t('resources.ndma.source'),
+        title: t("resources.ndma.title"),
+        description: t("resources.ndma.description"),
+        source: t("resources.ndma.source"),
         lastUpdated: "August 18, 2025",
         link: "http://ndma.gov.pk/",
         status: "active",
       },
       {
         id: "2",
-        title: t('resources.pmd.title'),
-        description: t('resources.pmd.description'),
-        source: t('resources.pmd.source'),
+        title: t("resources.pmd.title"),
+        description: t("resources.pmd.description"),
+        source: t("resources.pmd.source"),
         lastUpdated: "August 18, 2025",
         link: "https://www.pmd.gov.pk/en/",
         status: "normal",
       },
       {
         id: "3",
-        title: t('resources.pdma.title'),
-        description: t('resources.pdma.description'),
-        source: t('resources.pdma.source'),
+        title: t("resources.pdma.title"),
+        description: t("resources.pdma.description"),
+        source: t("resources.pdma.source"),
         lastUpdated: "August 18, 2025",
         link: "https://www.pdma.gov.pk/",
         status: "warning",
       },
       {
         id: "4",
-        title: t('resources.rescue.title'),
-        description: t('resources.rescue.description'),
-        source: t('resources.rescue.source'),
+        title: t("resources.rescue.title"),
+        description: t("resources.rescue.description"),
+        source: t("resources.rescue.source"),
         lastUpdated: "August 18, 2025",
         link: "https://rescue.gov.pk/",
         status: "active",
@@ -253,7 +325,7 @@ export default function HomeScreen() {
   const requestLocationAndFetchWeather = async () => {
     setLoadingWeather(true);
     try {
-      console.log('Requesting location permissions...');
+      console.log("Requesting location permissions...");
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         console.log("Location permission denied. Using default location.");
@@ -264,20 +336,24 @@ export default function HomeScreen() {
         );
         return;
       }
-      
-      console.log('Getting current position...');
+
+      console.log("Getting current position...");
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 10000,
       });
-      
-      console.log('Location obtained:', location.coords.latitude, location.coords.longitude);
-      
+
+      console.log(
+        "Location obtained:",
+        location.coords.latitude,
+        location.coords.longitude
+      );
+
       const cityName = await getCityName(
         location.coords.latitude,
         location.coords.longitude
       );
-      
+
       await fetchWeatherData(
         location.coords.latitude,
         location.coords.longitude,
@@ -299,12 +375,12 @@ export default function HomeScreen() {
 
   const getCityName = async (lat: number, lon: number): Promise<string> => {
     try {
-      console.log('Getting city name for:', lat, lon);
+      console.log("Getting city name for:", lat, lon);
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
         {
           headers: {
-            "Accept-Language": t('cityLang'),
+            "Accept-Language": t("cityLang"),
             "User-Agent": "DisasterReadyApp/1.0",
           },
         }
@@ -318,23 +394,24 @@ export default function HomeScreen() {
         throw new Error("Nominatim API error: Non-JSON response");
       }
       const data = await response.json();
-      const cityName = data.address?.city ||
+      const cityName =
+        data.address?.city ||
         data.address?.town ||
         data.address?.village ||
-        t('home.currentLocation');
-      
-      console.log('City name obtained:', cityName);
+        t("home.currentLocation");
+
+      console.log("City name obtained:", cityName);
       return cityName;
     } catch (error) {
       console.error("Reverse geocoding error:", error);
-      return t('home.currentLocation');
+      return t("home.currentLocation");
     }
   };
 
   const fetchWeatherData = async (lat: number, lon: number, city: string) => {
     setLoadingWeather(true);
     try {
-      console.log('Fetching weather for:', city, lat, lon);
+      console.log("Fetching weather for:", city, lat, lon);
       const weatherRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&current_weather=true&hourly=precipitation_probability&timezone=auto`
       );
@@ -356,9 +433,9 @@ export default function HomeScreen() {
         })),
       };
       setWeatherData(weather);
-      console.log('Weather data set:', weather.city, weather.temp + '°C');
+      console.log("Weather data set:", weather.city, weather.temp + "°C");
 
-      await checkWeatherAlerts(data, city, lat, lon);
+      await checkWeatherAlerts(data, city, lat, lon, t, updateNotificationCount);
     } catch (e) {
       console.error("Weather API Error:", e);
       setWeatherData(null);
@@ -367,55 +444,69 @@ export default function HomeScreen() {
     }
   };
 
-  const checkWeatherAlerts = async (weatherData: any, city: string, lat: number, lon: number) => {
-    // This function contains notification content, which can also be translated
-    // but is omitted here as it wasn't in the provided JSON.
-    try {
-      if (weatherData.hourly?.precipitation_probability) {
-        const next24Hours = weatherData.hourly.precipitation_probability.slice(0, 24);
-        const maxPrecipitation = Math.max(...next24Hours);
-        
-        if (maxPrecipitation > 50) {
-          await NotificationService.scheduleWeatherAlert(
-            'Rain Warning',
-            `Chance of rain (${maxPrecipitation}%) expected in ${city} within 24 hours. Consider taking an umbrella.`,
-            maxPrecipitation > 80 ? 'critical' : maxPrecipitation > 65 ? 'high' : 'moderate',
-            city
-          );
-          await updateNotificationCount();
-          console.log('Weather alert sent for precipitation:', maxPrecipitation + '%');
-        }
-      }
+const checkWeatherAlerts = async (
+  weatherData: any,
+  city: string,
+  lat: number,
+  lon: number,
+  t: TFunction, // <-- Add this
+  updateNotificationCount: () => Promise<void> // Pass this function in as well
+) => {
+  try {
+    if (weatherData.hourly?.precipitation_probability) {
+      const next24Hours = weatherData.hourly.precipitation_probability.slice(
+        0,
+        24
+      );
+      const maxPrecipitation = Math.max(...next24Hours);
 
-      if (weatherData.daily?.temperature_2m_max?.[0] > 30) {
+      if (maxPrecipitation > 50) {
         await NotificationService.scheduleWeatherAlert(
-          'Hot Weather Alert',
-          `High temperatures up to ${Math.round(weatherData.daily.temperature_2m_max[0])}°C expected in ${city}. Stay hydrated and avoid prolonged sun exposure.`,
-          weatherData.daily.temperature_2m_max[0] > 35 ? 'high' : 'moderate',
+          t("home.weatherAlerts.rainWarningTitle"),
+          t("home.weatherAlerts.rainWarningMessage", {
+            precipitation: maxPrecipitation,
+            city: city,
+          }),
+          maxPrecipitation > 80
+            ? "critical"
+            : maxPrecipitation > 65
+            ? "high"
+            : "moderate",
           city
         );
         await updateNotificationCount();
-        console.log('Hot weather alert sent:', weatherData.daily.temperature_2m_max[0] + '°C');
       }
-
-      if (weatherData.daily?.temperature_2m_min?.[0] < 10) {
-        await NotificationService.scheduleWeatherAlert(
-          'Cold Weather Notice',
-          `Cool temperatures down to ${Math.round(weatherData.daily.temperature_2m_min[0])}°C expected in ${city}. Dress warmly.`,
-          weatherData.daily.temperature_2m_min[0] < 5 ? 'high' : 'moderate',
-          city
-        );
-        await updateNotificationCount();
-        console.log('Cold weather alert sent:', weatherData.daily.temperature_2m_min[0] + '°C');
-      }
-    } catch (error) {
-      console.error('Error checking weather alerts:', error);
     }
-  };
+
+    if (weatherData.daily?.temperature_2m_max?.[0] > 30) {
+      const temp = Math.round(weatherData.daily.temperature_2m_max[0]);
+      await NotificationService.scheduleWeatherAlert(
+        t("home.weatherAlerts.hotWeatherTitle"),
+        t("home.weatherAlerts.hotWeatherMessage", { temp, city }),
+        weatherData.daily.temperature_2m_max[0] > 35 ? "high" : "moderate",
+        city
+      );
+      await updateNotificationCount();
+    }
+
+    if (weatherData.daily?.temperature_2m_min?.[0] < 10) {
+      const temp = Math.round(weatherData.daily.temperature_2m_min[0]);
+      await NotificationService.scheduleWeatherAlert(
+        t("home.weatherAlerts.coldWeatherTitle"),
+        t("home.weatherAlerts.coldWeatherMessage", { temp, city }),
+        weatherData.daily.temperature_2m_min[0] < 5 ? "high" : "moderate",
+        city
+      );
+      await updateNotificationCount();
+    }
+  } catch (error) {
+    console.error("Error checking weather alerts:", error);
+  }
+};
 
   const fetchSeismicData = async () => {
     try {
-      console.log('Fetching seismic data...');
+      console.log("Fetching seismic data...");
       const res = await fetch(
         `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=${PAKISTAN_BOUNDS.minLat}&maxlatitude=${PAKISTAN_BOUNDS.maxLat}&minlongitude=${PAKISTAN_BOUNDS.minLon}&maxlongitude=${PAKISTAN_BOUNDS.maxLon}&minmagnitude=3.0&orderby=time&limit=20`
       );
@@ -424,7 +515,16 @@ export default function HomeScreen() {
       const pakistanFeatures = data.features.filter((eq: any) => {
         const place = eq.properties.place.toLowerCase();
         return (
-          place.includes("pakistan") || place.includes("kashmir") || place.includes("quetta") || place.includes("islamabad") || place.includes("lahore") || place.includes("karachi") || place.includes("gilgit") || place.includes("peshawar") || place.includes("multan") || place.includes("skardu")
+          place.includes("pakistan") ||
+          place.includes("kashmir") ||
+          place.includes("quetta") ||
+          place.includes("islamabad") ||
+          place.includes("lahore") ||
+          place.includes("karachi") ||
+          place.includes("gilgit") ||
+          place.includes("peshawar") ||
+          place.includes("multan") ||
+          place.includes("skardu")
         );
       });
 
@@ -453,7 +553,7 @@ export default function HomeScreen() {
 
       setSeismicAlerts(parsed);
       await checkSeismicAlerts(pakistanFeatures);
-      console.log('Seismic data loaded:', parsed.length, 'alerts');
+      console.log("Seismic data loaded:", parsed.length, "alerts");
     } catch (err) {
       console.error("Earthquake API error:", err);
       setSeismicAlerts([]);
@@ -468,26 +568,28 @@ export default function HomeScreen() {
         const time = new Date(eq.properties.time);
         const now = new Date();
         const hoursSince = (now.getTime() - time.getTime()) / (1000 * 60 * 60);
-        
+
         if (hoursSince <= 6 && magnitude >= 3.5) {
           await NotificationService.scheduleSeismicAlert(
             `Earthquake M${magnitude.toFixed(1)} Detected`,
-            `A magnitude ${magnitude.toFixed(1)} earthquake occurred ${place}. Monitor for aftershocks and follow safety protocols.`,
+            `A magnitude ${magnitude.toFixed(
+              1
+            )} earthquake occurred ${place}. Monitor for aftershocks and follow safety protocols.`,
             magnitude,
             place
           );
           await updateNotificationCount();
-          console.log('Seismic alert sent:', magnitude, place);
+          console.log("Seismic alert sent:", magnitude, place);
         }
       }
     } catch (error) {
-      console.error('Error checking seismic alerts:', error);
+      console.error("Error checking seismic alerts:", error);
     }
   };
 
   const fetchFloodData = async () => {
     try {
-      console.log('Fetching flood data...');
+      console.log("Fetching flood data...");
       const proxyUrl = "https://api.codetabs.com/v1/proxy?quest=";
       const targetUrl = "https://www.gdacs.org/xml/rss.xml";
       const res = await fetch(proxyUrl + encodeURIComponent(targetUrl));
@@ -500,13 +602,27 @@ export default function HomeScreen() {
           ? xmlDoc.rss.channel.item
           : [xmlDoc.rss.channel.item]
         : [];
-      
+
       const pakistanAlerts: AlertType[] = [];
       const internationalAlerts: AlertType[] = [];
-      const pakistaniKeywords = ["pakistan", "karachi", "lahore", "islamabad", "sindh", "punjab", "balochistan", "kpk", "gilgit", "kashmir", "indus"];
-      
+      const pakistaniKeywords = [
+        "pakistan",
+        "karachi",
+        "lahore",
+        "islamabad",
+        "sindh",
+        "punjab",
+        "balochistan",
+        "kpk",
+        "gilgit",
+        "kashmir",
+        "indus",
+      ];
+
       items
-        .filter((item: any) => (item.title || "").toLowerCase().includes("flood"))
+        .filter((item: any) =>
+          (item.title || "").toLowerCase().includes("flood")
+        )
         .forEach((item: any, index: number) => {
           const title = (item.title || "").toLowerCase();
           const alert: AlertType = {
@@ -515,28 +631,34 @@ export default function HomeScreen() {
             title: item.title,
             description: (item.description || "").substring(0, 100) + "...",
             location: "Various Regions",
-            time: item.pubDate ? getTimeAgo(new Date(item.pubDate)) : t('home.recent'),
+            time: item.pubDate
+              ? getTimeAgo(new Date(item.pubDate))
+              : t("home.recent"),
             severity: "moderate",
             link: item.link,
           };
-          
+
           if (pakistaniKeywords.some((keyword) => title.includes(keyword))) {
             pakistanAlerts.push(alert);
             NotificationService.scheduleLocationAlert(
-              'Flood Alert in Pakistan',
+              "Flood Alert in Pakistan",
               `Flood conditions reported: ${item.title}`,
-              'high',
-              'flood',
-              'Pakistan Region'
+              "high",
+              "flood",
+              "Pakistan Region"
             ).then(() => updateNotificationCount());
           } else {
             internationalAlerts.push(alert);
           }
         });
-      
+
       setPakistanFloodAlerts(pakistanAlerts.slice(0, 3));
       setInternationalFloodAlerts(internationalAlerts.slice(0, 3));
-      console.log('Flood data loaded:', pakistanAlerts.length + internationalAlerts.length, 'alerts');
+      console.log(
+        "Flood data loaded:",
+        pakistanAlerts.length + internationalAlerts.length,
+        "alerts"
+      );
     } catch (error) {
       console.error("🚨 Flood data fetch failed:", error);
     }
@@ -546,22 +668,24 @@ export default function HomeScreen() {
   const getTimeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     const days = Math.floor(seconds / 86400);
-    if (days > 0) return t('home.timeAgo.day_other', { count: days });
-    if (days === 1) return t('home.timeAgo.day_one');
-    
+    if (days > 0) return t("home.timeAgo.day_other", { count: days });
+    if (days === 1) return t("home.timeAgo.day_one");
+
     const hours = Math.floor(seconds / 3600);
-    if (hours > 0) return t('home.timeAgo.hour_other', { count: hours });
-    if (hours === 1) return t('home.timeAgo.hour_one');
+    if (hours > 0) return t("home.timeAgo.hour_other", { count: hours });
+    if (hours === 1) return t("home.timeAgo.hour_one");
 
     const minutes = Math.floor(seconds / 60);
-    if (minutes > 0) return t('home.timeAgo.minute_other', { count: minutes });
-    if (minutes === 1) return t('home.timeAgo.minute_one');
-    
-    return t('home.timeAgo.now');
+    if (minutes > 0) return t("home.timeAgo.minute_other", { count: minutes });
+    if (minutes === 1) return t("home.timeAgo.minute_one");
+
+    return t("home.timeAgo.now");
   };
-  
+
   const getWeatherCondition = (code: number): string => {
-    return t(`weatherConditions.${code}`, { defaultValue: t('weatherConditions.0') });
+    return t(`weatherConditions.${code}`, {
+      defaultValue: t("weatherConditions.0"),
+    });
   };
 
   const getWeatherIcon = (condition: string): keyof typeof Icon.glyphMap => {
@@ -593,15 +717,15 @@ export default function HomeScreen() {
 
   const handleResourcePress = (resource: DisasterResource) => {
     Alert.alert(
-      t('alerts.visitWebsitePrompt.title', { resourceTitle: resource.title }),
-      t('alerts.visitWebsitePrompt.message', {
+      t("alerts.visitWebsitePrompt.title", { resourceTitle: resource.title }),
+      t("alerts.visitWebsitePrompt.message", {
         resourceDescription: resource.description,
-        resourceSource: resource.source
+        resourceSource: resource.source,
       }),
       [
-        { text: t('alerts.cancel'), style: "cancel" },
+        { text: t("alerts.cancel"), style: "cancel" },
         {
-          text: t('alerts.visitWebsitePrompt.action'),
+          text: t("alerts.visitWebsitePrompt.action"),
           onPress: () => Linking.openURL(resource.link),
         },
       ]
@@ -609,54 +733,58 @@ export default function HomeScreen() {
   };
 
   const sendTestAlert = async () => {
-    Alert.alert(
-      t('alerts.demoTitle'),
-      t('alerts.demoMessage'),
-      [
-        { text: t('alerts.cancel'), style: "cancel" },
-        {
-          text: t('alerts.immediateTest'),
-          onPress: async () => {
-            await locationAlertService.createTestAlerts();
-            await updateNotificationCount();
-            Alert.alert(t('alerts.successTitle'), t('alerts.successMessage'));
-          },
+    Alert.alert(t("alerts.demoTitle"), t("alerts.demoMessage"), [
+      { text: t("alerts.cancel"), style: "cancel" },
+      {
+        text: t("alerts.immediateTest"),
+        onPress: async () => {
+          await locationAlertService.createTestAlerts();
+          await updateNotificationCount();
+          Alert.alert(t("alerts.successTitle"), t("alerts.successMessage"));
         },
-        {
-          text: t('alerts.delayedTest'),
-          onPress: async () => {
-            await locationAlertService.scheduleDelayedTestNotification(30);
-            Alert.alert(t('alerts.scheduledTitle'), t('alerts.scheduledMessage'));
-          },
+      },
+      {
+        text: t("alerts.delayedTest"),
+        onPress: async () => {
+          await locationAlertService.scheduleDelayedTestNotification(30);
+          Alert.alert(t("alerts.scheduledTitle"), t("alerts.scheduledMessage"));
         },
-        {
-          text: t('alerts.weatherTest'),
-          onPress: async () => {
-            await NotificationService.scheduleWeatherAlert(
-              "DEMO: Severe Storm Warning",
-              `Heavy thunderstorms with 90% rain probability approaching ${weatherData?.city || 'your area'}. Take shelter immediately.`,
-              "critical",
-              weatherData?.city || "Current Location"
-            );
-            await updateNotificationCount();
-            Alert.alert(t('alerts.weatherSentTitle'), t('alerts.weatherSentMessage'));
-          },
+      },
+      {
+        text: t("alerts.weatherTest"),
+        onPress: async () => {
+          await NotificationService.scheduleWeatherAlert(
+            "DEMO: Severe Storm Warning",
+            `Heavy thunderstorms with 90% rain probability approaching ${
+              weatherData?.city || "your area"
+            }. Take shelter immediately.`,
+            "critical",
+            weatherData?.city || "Current Location"
+          );
+          await updateNotificationCount();
+          Alert.alert(
+            t("alerts.weatherSentTitle"),
+            t("alerts.weatherSentMessage")
+          );
         },
-        {
-          text: t('alerts.emergencyTest'),
-          onPress: async () => {
-            await NotificationService.scheduleEmergencyAlert(
-              "DEMO: Emergency Broadcast",
-              "This is a test emergency alert. In a real emergency, this would contain critical safety information.",
-              weatherData?.city || "Current Location",
-              "Test Emergency"
-            );
-            await updateNotificationCount();
-            Alert.alert(t('alerts.emergencySentTitle'), t('alerts.emergencySentMessage'));
-          },
+      },
+      {
+        text: t("alerts.emergencyTest"),
+        onPress: async () => {
+          await NotificationService.scheduleEmergencyAlert(
+            "DEMO: Emergency Broadcast",
+            "This is a test emergency alert. In a real emergency, this would contain critical safety information.",
+            weatherData?.city || "Current Location",
+            "Test Emergency"
+          );
+          await updateNotificationCount();
+          Alert.alert(
+            t("alerts.emergencySentTitle"),
+            t("alerts.emergencySentMessage")
+          );
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleNotificationPress = () => {
@@ -679,7 +807,7 @@ export default function HomeScreen() {
           />
           <ThemedInput
             style={styles.searchInput}
-            placeholder={t('home.searchPlaceholder')}
+            placeholder={t("home.searchPlaceholder")}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -696,19 +824,20 @@ export default function HomeScreen() {
         </ThemedView>
       ) : (
         <>
-          <ThemedText type="title">{t('home.headerTitle')}</ThemedText>
+          <ThemedText type="title">{t("home.headerTitle")}</ThemedText>
           <ThemedView style={styles.headerRight}>
             <TouchableOpacity onPress={() => setIsSearchVisible(true)}>
               <Ionicons name="search-outline" size={24} color="#333" />
             </TouchableOpacity>
-            
-            <TouchableOpacity
+
+            {/* Uncomment for test alerts */}
+            {/* <TouchableOpacity
               style={{ marginLeft: 15 }}
               onPress={sendTestAlert}
             >
               <Ionicons name="flask-outline" size={24} color="#FF6B35" />
-            </TouchableOpacity>
-            
+            </TouchableOpacity> */}
+
             <TouchableOpacity
               style={[styles.notificationButton, { marginLeft: 15 }]}
               onPress={handleNotificationPress}
@@ -717,12 +846,12 @@ export default function HomeScreen() {
               {notificationCount > 0 && (
                 <ThemedView style={styles.notificationBadge}>
                   <ThemedText style={styles.notificationBadgeText}>
-                    {notificationCount > 99 ? '99+' : notificationCount}
+                    {notificationCount > 99 ? "99+" : notificationCount}
                   </ThemedText>
                 </ThemedView>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.profileIcon}
               onPress={() => setSidebarVisible(true)}
@@ -744,13 +873,15 @@ export default function HomeScreen() {
         {loadingSuggestions ? (
           <ThemedView style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#00BCD4" />
-            <ThemedText style={styles.loadingText}>{t('home.searchingText')}</ThemedText>
+            <ThemedText style={styles.loadingText}>
+              {t("home.searchingText")}
+            </ThemedText>
           </ThemedView>
         ) : citySuggestions.length === 0 && searchQuery.length > 2 ? (
           <ThemedView style={styles.noResultsContainer}>
             <Ionicons name="location-outline" size={24} color="#ccc" />
             <ThemedText style={styles.noResultsText}>
-              {t('home.noCitiesFound', { query: searchQuery })}
+              {t("home.noCitiesFound", { query: searchQuery })}
             </ThemedText>
           </ThemedView>
         ) : (
@@ -795,11 +926,14 @@ export default function HomeScreen() {
       <Ionicons name="information-circle" size={20} color="#2196F3" />
       <ThemedView style={styles.demoBannerContent}>
         <ThemedText style={styles.demoBannerText}>
-          {t('home.demoBannerTitle')}
+          {t("home.demoBannerTitle")}
         </ThemedText>
         {isLocationInitialized && (
           <ThemedText style={styles.demoBannerSubtext}>
-            {t('home.demoBannerSubtitle')}
+            {fcmAvailable 
+              ? t("home.demoBannerSubtitle") + " (FCM Available)" 
+              : t("home.demoBannerSubtitle") + " (Expo Only)"
+            }
           </ThemedText>
         )}
       </ThemedView>
@@ -810,7 +944,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.section}>
       <ThemedView style={styles.weatherHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('home.weatherTitle')}
+          {t("home.weatherTitle")}
         </ThemedText>
         {weatherData?.city && (
           <ThemedText style={styles.cityText}>{weatherData.city}</ThemedText>
@@ -824,7 +958,7 @@ export default function HomeScreen() {
         />
       ) : !weatherData ? (
         <ThemedView style={styles.weatherCard}>
-          <ThemedText>{t('home.weatherFetchError')}</ThemedText>
+          <ThemedText>{t("home.weatherFetchError")}</ThemedText>
         </ThemedView>
       ) : (
         <ThemedView style={styles.weatherCard}>
@@ -845,12 +979,14 @@ export default function HomeScreen() {
               </ThemedView>
             </ThemedView>
             <ThemedView style={styles.weatherDetails}>
-              <ThemedText style={styles.weatherDetail}>{t('home.today')}</ThemedText>
               <ThemedText style={styles.weatherDetail}>
-                {t('home.high', { temp: weatherData.high })}
+                {t("home.today")}
               </ThemedText>
               <ThemedText style={styles.weatherDetail}>
-                {t('home.low', { temp: weatherData.low })}
+                {t("home.high", { temp: weatherData.high })}
+              </ThemedText>
+              <ThemedText style={styles.weatherDetail}>
+                {t("home.low", { temp: weatherData.low })}
               </ThemedText>
             </ThemedView>
           </ThemedView>
@@ -883,7 +1019,9 @@ export default function HomeScreen() {
             <ThemedText style={styles.alertMagnitude}>
               {alert.magnitude?.toFixed(1)}
             </ThemedText>
-            <ThemedText style={styles.alertMagnitudeLabel}>{t('home.magnitude')}</ThemedText>
+            <ThemedText style={styles.alertMagnitudeLabel}>
+              {t("home.magnitude")}
+            </ThemedText>
           </ThemedView>
         )}
         <ThemedView style={styles.alertInfo}>
@@ -893,7 +1031,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.alertTime}>{alert.time}</ThemedText>
           {alert.depth && (
             <ThemedText style={styles.alertDepth}>
-              {t('home.depth', { depth: alert.depth.toFixed(1) })}
+              {t("home.depth", { depth: alert.depth.toFixed(1) })}
             </ThemedText>
           )}
         </ThemedView>
@@ -917,7 +1055,7 @@ export default function HomeScreen() {
   const renderAlertsSection = () => (
     <ThemedView style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        {t('home.alertsTitle')}
+        {t("home.alertsTitle")}
       </ThemedText>
       {alertsLoading ? (
         <ActivityIndicator
@@ -933,14 +1071,14 @@ export default function HomeScreen() {
               type="defaultSemiBold"
               style={styles.alertCategoryTitle}
             >
-              {t('home.seismicCategory')}
+              {t("home.seismicCategory")}
             </ThemedText>
           </ThemedView>
           {seismicAlerts.length > 0 ? (
             seismicAlerts.map(renderAlertItem)
           ) : (
             <ThemedText style={styles.noAlertsText}>
-              {t('home.noSeismicActivity')}
+              {t("home.noSeismicActivity")}
             </ThemedText>
           )}
 
@@ -950,14 +1088,14 @@ export default function HomeScreen() {
               type="defaultSemiBold"
               style={styles.alertCategoryTitle}
             >
-              {t('home.floodCategory')}
+              {t("home.floodCategory")}
             </ThemedText>
           </ThemedView>
           {pakistanFloodAlerts.length > 0 ? (
             pakistanFloodAlerts.map(renderAlertItem)
           ) : (
             <ThemedText style={styles.noAlertsText}>
-              {t('home.noFloodWarnings')}
+              {t("home.noFloodWarnings")}
             </ThemedText>
           )}
 
@@ -967,7 +1105,7 @@ export default function HomeScreen() {
                 type="defaultSemiBold"
                 style={styles.subCategoryTitle}
               >
-                {t('home.internationalAlerts')}
+                {t("home.internationalAlerts")}
               </ThemedText>
               {internationalFloodAlerts.map(renderAlertItem)}
             </>
@@ -980,7 +1118,7 @@ export default function HomeScreen() {
   const renderPakistaniResources = () => (
     <ThemedView style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
-        {t('home.resourcesTitle')}
+        {t("home.resourcesTitle")}
       </ThemedText>
       <ThemedView style={styles.resourcesGrid}>
         {disasterResources.map((resource) => (
@@ -1050,8 +1188,8 @@ export default function HomeScreen() {
       >
         {renderHeader()}
         {renderCitySuggestions()}
-        {!isSearchVisible && renderDemoStatusBanner()}
-        
+        {/* {!isSearchVisible && renderDemoStatusBanner()} */}
+
         <Sidebar
           visible={sidebarVisible}
           onClose={() => setSidebarVisible(false)}
@@ -1060,7 +1198,7 @@ export default function HomeScreen() {
           visible={notiSidebarVisible}
           onClose={() => setNotiSidebarVisible(false)}
         />
-        
+
         {!isSearchVisible && (
           <>
             {renderWeatherSection()}
@@ -1089,24 +1227,24 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   notificationButton: {
-    position: 'relative',
+    position: "relative",
   },
   notificationBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     right: -8,
-    backgroundColor: '#FF4444',
+    backgroundColor: "#FF4444",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 4,
   },
   notificationBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   profileIcon: {
     width: 32,
@@ -1127,30 +1265,30 @@ const styles = StyleSheet.create({
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 16, height: 40 },
   demoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E3F2FD",
     paddingHorizontal: 20,
     paddingVertical: 12,
     marginHorizontal: 20,
     marginTop: 10,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderLeftColor: "#2196F3",
   },
   demoBannerContent: {
     flex: 1,
     marginLeft: 10,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   demoBannerText: {
     fontSize: 14,
-    color: '#1565C0',
-    fontWeight: '500',
+    color: "#1565C0",
+    fontWeight: "500",
   },
   demoBannerSubtext: {
     fontSize: 12,
-    color: '#1976D2',
+    color: "#1976D2",
     marginTop: 2,
   },
   suggestionsContainer: {

@@ -2,8 +2,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -16,61 +15,78 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  InteractionManager,
 } from "react-native";
 import { ThemedInput } from "@/components/ThemedInput";
 import { useNavigation } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-// Memoized InfoCard component
-const InfoCard = React.memo(
-  ({
-    icon,
-    title,
-    value,
-    field,
-    isEditing,
-    onInputChange,
-    editable = true,
-    t,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    value: string;
-    field: string;
-    isEditing: boolean;
-    onInputChange: (field: string, value: string) => void;
-    editable?: boolean;
-    t: (key: string, options?: any) => string;
-  }) => (
+// Optimized InfoCard with better input handling
+const InfoCard = React.memo(({
+  icon,
+  title,
+  value,
+  field,
+  isEditing,
+  onInputChange,
+  editable = true,
+  t,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  value: string;
+  field: string;
+  isEditing: boolean;
+  onInputChange: (field: string, value: string) => void;
+  editable?: boolean;
+  t: (key: string, options?: any) => string;
+}) => {
+  // Local state for immediate input response
+  const [localValue, setLocalValue] = useState(value);
+  
+  // Update local value when prop value changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleChangeText = useCallback((text: string) => {
+    setLocalValue(text); // Update local state immediately
+    onInputChange(field, text); // Update parent state
+  }, [onInputChange, field]);
+
+  return (
     <ThemedView style={styles.card} lightColor="#FFFFFF" darkColor="#1C1C1E">
-      <ThemedView style={[styles.infoHeader, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+      <ThemedView style={styles.infoHeader}>
         <Ionicons name={icon} size={20} color="#4ECDC4" />
-        <ThemedText style={[styles.infoTitle, I18nManager.isRTL ? { marginRight: 8 } : { marginLeft: 8 }]}>{title}</ThemedText>
+        <ThemedText style={styles.infoTitle}>{title}</ThemedText>
       </ThemedView>
       {isEditing && editable ? (
         <ThemedInput
-          style={[styles.input, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}
-          value={value}
-          onChangeText={(text) => onInputChange(field, text)}
+          style={styles.input}
+          value={localValue}
+          onChangeText={handleChangeText}
           placeholder={t("enterPlaceholder", { title: title.toLowerCase() })}
           placeholderTextColor="#999"
           autoCorrect={false}
+          autoCapitalize="none"
           returnKeyType="done"
           blurOnSubmit={false}
+          multiline={false}
+          numberOfLines={1}
         />
       ) : (
-        <ThemedText style={[styles.infoValue, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+        <ThemedText style={styles.infoValue}>
           {value || t("notProvided")}
         </ThemedText>
       )}
     </ThemedView>
-  )
-);
+  );
+});
 
 export default function ProfileScreen() {
   const { user, updateUserProfile, fetchUserProfile } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     displayName: user?.displayName || "",
@@ -81,38 +97,59 @@ export default function ProfileScreen() {
     profilePicture: user?.photoURL || "",
   });
   const [loading, setLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const navigation = useNavigation();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Debounce profile loading to prevent multiple calls
+  const loadUserProfile = useCallback(async () => {
+    if (profileLoaded) return;
+    
+    try {
+      // Use InteractionManager to defer heavy operations
+      InteractionManager.runAfterInteractions(async () => {
+        const profileData = await fetchUserProfile();
+        if (profileData) {
+          setFormData((prev) => ({
+            ...prev,
+            displayName: user?.displayName || profileData.displayName || "",
+            email: user?.email || "",
+            phone: profileData.phone || "",
+            location: profileData.location || "",
+            emergencyContact: profileData.emergencyContact || "",
+          }));
+        }
+        setProfileLoaded(true);
+      });
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      setProfileLoaded(true);
+    }
+  }, [user, fetchUserProfile, profileLoaded]);
 
   useEffect(() => {
     loadUserProfile();
-  }, []);
+  }, [loadUserProfile]);
 
-  const loadUserProfile = useCallback(async () => {
-    try {
-      const profileData = await fetchUserProfile();
-      if (profileData) {
-        setFormData((prev) => ({
-          ...prev,
-          displayName: user?.displayName || profileData.displayName || "",
-          email: user?.email || "",
-          phone: profileData.phone || "",
-          location: profileData.location || "",
-          emergencyContact: profileData.emergencyContact || "",
-        }));
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
-    }
-  }, [user, fetchUserProfile]);
-
+  // Direct input change without throttling for smooth typing
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (loading) return;
+    
     try {
       setLoading(true);
-      const result = await updateUserProfile(formData);
+      
+      // Use InteractionManager for heavy operations
+      const result = await new Promise<any>((resolve) => {
+        InteractionManager.runAfterInteractions(async () => {
+          const updateResult = await updateUserProfile(formData);
+          resolve(updateResult);
+        });
+      });
+
       if (result.success) {
         setIsEditing(false);
         Alert.alert(t("success"), t("profileUpdated"));
@@ -124,7 +161,7 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [formData, updateUserProfile, t]);
+  }, [formData, updateUserProfile, t, loading]);
 
   const handleEditToggle = useCallback(() => {
     if (isEditing) {
@@ -135,18 +172,22 @@ export default function ProfileScreen() {
   }, [isEditing, handleSave]);
 
   const handleGoBack = useCallback(() => {
-    if (typeof navigation !== "undefined" && navigation.goBack) {
+    if (navigation?.goBack) {
       navigation.goBack();
     }
   }, [navigation]);
 
+  // Add keyboard dismiss handler that doesn't interfere with scrolling
+  const handleContainerPress = useCallback(() => {
+    // Only dismiss keyboard if an input is focused
+    if (isEditing) {
+      Keyboard.dismiss();
+    }
+  }, [isEditing]);
+
+  // Memoize only essential computed values
   const userDisplayName = useMemo(() => {
-    return (
-      user?.displayName ||
-      formData.displayName ||
-      user?.email ||
-      t("anonymousUser")
-    );
+    return user?.displayName || formData.displayName || user?.email || t("anonymousUser");
   }, [user?.displayName, formData.displayName, user?.email, t]);
 
   const profileImage = useMemo(
@@ -159,21 +200,21 @@ export default function ProfileScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ThemedView style={styles.container}>
-          <ThemedView style={[styles.header, { flexDirection: I18nManager.isRTL ? "row-reverse" : "row" }]}>
-            <TouchableOpacity style={[styles.headerButton, I18nManager.isRTL ? styles.headerButtonRTL : styles.headerButtonLTR]} onPress={handleGoBack}>
-              <Ionicons name={I18nManager.isRTL ? "arrow-forward" : "arrow-back"} size={24} color="#aaa" />
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+          {/* Fixed Header */}
+          <ThemedView style={styles.header}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleGoBack}>
+              <Ionicons name="arrow-back" size={24} color="#aaa" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.profileAvatar} disabled>
               {profileImage}
             </TouchableOpacity>
-            <ThemedView style={[styles.profileInfo, { alignItems: I18nManager.isRTL ? 'flex-end' : 'flex-start' }]}>
+            <ThemedView style={styles.profileInfo}>
               <ThemedText style={styles.profileName}>
                 {userDisplayName}
               </ThemedText>
@@ -184,40 +225,104 @@ export default function ProfileScreen() {
           </ThemedView>
 
           <TouchableOpacity
-            style={[styles.editButton, I18nManager.isRTL ? styles.editButtonRTL : styles.editButtonLTR]}
+            style={styles.editButton}
             onPress={handleEditToggle}
             disabled={loading}
+            activeOpacity={0.7}
           >
             <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#fff"/>
           </TouchableOpacity>
 
+          {/* Optimized ScrollView */}
           <ScrollView
+            ref={scrollViewRef}
             style={styles.content}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="never"
+            keyboardDismissMode="on-drag"
+            // Critical touch handling props
+            scrollEnabled={true}
+            scrollEventThrottle={1}
+            decelerationRate="fast"
+            bounces={Platform.OS === 'ios'}
+            bouncesZoom={false}
+            alwaysBounceVertical={Platform.OS === 'ios'}
+            // Touch response fixes
+            directionalLockEnabled={false}
+            canCancelContentTouches={true}
+            delayContentTouches={false}
+            // Performance props
+            removeClippedSubviews={false}
+            nestedScrollEnabled={false}
+            persistentScrollbar={false}
           >
+            {/* Personal Info Section */}
             <ThemedView style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              <ThemedText style={styles.sectionTitle}>
                 {t("personalInfo")}
               </ThemedText>
-              <InfoCard icon="person-outline" title={t("displayName")} value={formData.displayName} field="displayName" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
-              <InfoCard icon="mail-outline" title={t("email")} value={formData.email} field="email" isEditing={isEditing} onInputChange={handleInputChange} editable={!user?.isAnonymous} t={t} />
-              <InfoCard icon="call-outline" title={t("phone")} value={formData.phone} field="phone" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
-              <InfoCard icon="location-outline" title={t("location")} value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
+              <InfoCard 
+                icon="person-outline" 
+                title={t("displayName")} 
+                value={formData.displayName} 
+                field="displayName" 
+                isEditing={isEditing} 
+                onInputChange={handleInputChange} 
+                t={t} 
+              />
+              <InfoCard 
+                icon="mail-outline" 
+                title={t("email")} 
+                value={formData.email} 
+                field="email" 
+                isEditing={isEditing} 
+                onInputChange={handleInputChange} 
+                editable={!user?.isAnonymous} 
+                t={t} 
+              />
+              <InfoCard 
+                icon="call-outline" 
+                title={t("phone")} 
+                value={formData.phone} 
+                field="phone" 
+                isEditing={isEditing} 
+                onInputChange={handleInputChange} 
+                t={t} 
+              />
+              <InfoCard 
+                icon="location-outline" 
+                title={t("location")} 
+                value={formData.location} 
+                field="location" 
+                isEditing={isEditing} 
+                onInputChange={handleInputChange} 
+                t={t} 
+              />
             </ThemedView>
 
+            {/* Emergency Info Section */}
             <ThemedView style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              <ThemedText style={styles.sectionTitle}>
                 {t("emergencyInfo")}
               </ThemedText>
-              <InfoCard icon="medical-outline" title={t("emergencyContact")} value={formData.emergencyContact} field="emergencyContact" isEditing={isEditing} onInputChange={handleInputChange} t={t} />
+              <InfoCard 
+                icon="medical-outline" 
+                title={t("emergencyContact")} 
+                value={formData.emergencyContact} 
+                field="emergencyContact" 
+                isEditing={isEditing} 
+                onInputChange={handleInputChange} 
+                t={t} 
+              />
             </ThemedView>
 
+            {/* Account Stats Section */}
             <ThemedView style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
+              <ThemedText style={styles.sectionTitle}>
                 {t("accountStats")}
               </ThemedText>
-              <ThemedView style={[styles.statsContainer, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+              <ThemedView style={styles.statsContainer}>
                 <ThemedView style={styles.statCard}>
                   <Ionicons name="shield-checkmark" size={24} color="#4ECDC4" />
                   <ThemedText style={styles.statNumber}>15</ThemedText>
@@ -231,30 +336,51 @@ export default function ProfileScreen() {
               </ThemedView>
             </ThemedView>
 
-            <ThemedView style={styles.section}>
-              <TouchableOpacity style={[styles.actionButton, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+            {/* Action Buttons Section */}
+            {/* <ThemedView style={styles.section}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                activeOpacity={0.7}
+                delayPressIn={0}
+              >
                 <Ionicons name="download-outline" size={20} color="#4ECDC4" />
-                <ThemedText style={[styles.actionText, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t("downloadMyData")}</ThemedText>
-                <Ionicons name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#999" />
+                <ThemedText style={styles.actionText}>{t("downloadMyData")}</ThemedText>
+                <Ionicons name="chevron-forward" size={16} color="#999" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' }]}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                activeOpacity={0.7}
+                delayPressIn={0}
+              >
                 <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                <ThemedText style={[styles.actionText, { color: "#FF6B6B", textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>{t("deleteAccount")}</ThemedText>
-                <Ionicons name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"} size={16} color="#999" />
+                <ThemedText style={[styles.actionText, { color: "#FF6B6B" }]}>{t("deleteAccount")}</ThemedText>
+                <Ionicons name="chevron-forward" size={16} color="#999" />
               </TouchableOpacity>
-            </ThemedView>
+            </ThemedView> */}
+
+            {/* Add padding at bottom for better scrolling */}
+            <ThemedView style={styles.bottomPadding} />
           </ScrollView>
-        </ThemedView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
-  );
+        </KeyboardAvoidingView>
+      </ThemedView>
+    );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 50,
+  },
+  bottomPadding: {
+    height: 50,
+  },
   header: {
+    flexDirection: "row",
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -263,15 +389,9 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     position: 'absolute',
-    top: 70,
-    zIndex: 10,
-  },
-  headerButtonLTR: {
     left: 20,
     top: 40,
-  },
-  headerButtonRTL: {
-    right: 20,
+    zIndex: 10,
   },
   profileAvatar: {
     width: 60,
@@ -291,6 +411,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+    alignItems: "flex-start",
   },
   input: {
     fontSize: 16,
@@ -300,20 +421,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#4ECDC4",
     marginTop: 6,
+    textAlign: "left",
   },
   editButton: {
     position: "absolute",
     top: 60,
+    right: 20,
     backgroundColor: "#4ECDC4",
     borderRadius: 20,
     padding: 10,
     zIndex: 10,
-  },
-  editButtonLTR: {
-    right: 20,
-  },
-  editButtonRTL: {
-    left: 20,
   },
   actionButton: {
     flexDirection: "row",
@@ -356,6 +473,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 15,
+    textAlign: "left",
   },
   infoHeader: {
     flexDirection: "row",
@@ -366,9 +484,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textTransform: "capitalize",
+    marginLeft: 8,
   },
   infoValue: {
     fontSize: 16,
+    textAlign: "left",
   },
   statsContainer: {
     flexDirection: "row",
@@ -398,5 +518,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginHorizontal: 12,
+    textAlign: "left",
   },
 });

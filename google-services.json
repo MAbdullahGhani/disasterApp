@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "139120385098-mt0bi3hkni7igusa91mv1jvffbsesbmi.apps.googleusercontent.com",
+          "client_id": "139120385098-pem3i8hcsa2valicnjbj0k3ambe6fop2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.anonymous.disasterApp",
-            "certificate_hash": "97a2a40de44e6f397961e7c3ae3d71e4a3fc2e7e"
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
           }
         },
         {

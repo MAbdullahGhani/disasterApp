@@ -1,7 +1,3 @@
-import * as AuthSession from 'expo-auth-session';
-import { ResponseType } from 'expo-auth-session';
-import { useAuthRequest } from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import {
   GoogleAuthProvider,
   User,
@@ -12,15 +8,44 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile as updateFirebaseAuthProfile,
-} from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+} from "firebase/auth";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import React, {
+  ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 // Import auth and db after they're initialized
-import { auth, db } from '../firebase/config';
+import { auth, db } from "../firebase/config";
 
-WebBrowser.maybeCompleteAuthSession();
+// Conditional Google Sign-in import
+let GoogleSignin: any = null;
+let statusCodes: any = null;
+
+// Only import Google Sign-in in development builds
+const initializeGoogleSignIn = async () => {
+  try {
+    const isExpoGo = Constants.appOwnership === "expo";
+
+    if (!isExpoGo && Platform.OS === "android") {
+      const googleSignInModule = await import(
+        "@react-native-google-signin/google-signin"
+      );
+      GoogleSignin = googleSignInModule.GoogleSignin;
+      statusCodes = googleSignInModule.statusCodes;
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.log("Google Sign-in not available:", error);
+    return false;
+  }
+};
 
 // --- Types ---
 interface ProfileData {
@@ -35,14 +60,21 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   initializing: boolean;
+  isGoogleSignInAvailable: boolean;
   signInWithEmail: (email: string, password: string) => Promise<any>;
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<any>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<any>;
   signInWithGoogle: () => Promise<any>;
   signInAnonymouslyUser: () => Promise<any>;
   logout: () => Promise<any>;
   isAuthenticated: boolean;
   fetchUserProfile: () => Promise<ProfileData | null>;
-  updateUserProfile: (profileData: ProfileData) => Promise<{ success: boolean; error?: string }>;
+  updateUserProfile: (
+    profileData: ProfileData
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 interface AuthProviderProps {
@@ -54,7 +86,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -63,323 +95,358 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [initializing, setInitializing] = useState<boolean>(true);
+  const [isGoogleSignInAvailable, setIsGoogleSignInAvailable] =
+    useState<boolean>(false);
 
-  // Configure redirect URI for Expo Auth Session
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: true, // Always use proxy for Google OAuth with Expo
-  });
+  // Configure Google Sign-In
+  const configureGoogleSignIn = () => {
+    if (!GoogleSignin) return;
 
-  // Google Auth configuration
-  const [request, response, promptAsync] = useAuthRequest({
-    clientId: '139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com',
-    responseType: ResponseType.IdToken,
-    scopes: ['openid', 'profile', 'email'],
-    redirectUri,
-  });
+    try {
+      GoogleSignin.configure({
+        // IMPORTANT: Use your actual Google Console Client IDs
+        webClientId:
+          "139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com", // From Web OAuth Client
 
-  // Debug info - Enhanced logging
-  useEffect(() => {
-    console.log('🔧 Auth Configuration:');
-    console.log('Platform:', Platform.OS);
-    console.log('Development mode:', __DEV__);
-    console.log('Redirect URI:', redirectUri);
-    console.log('Auth request ready:', !!request);
-    console.log('Using proxy:', __DEV__);
-    
-    if (request) {
-      console.log('Request details:', {
-        clientId: request.clientId,
-        responseType: request.responseType,
-        scopes: request.scopes,
+        // Platform specific client IDs (optional but recommended)
+        iosClientId:
+          "139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com", // From iOS OAuth Client
+
+        offlineAccess: true, // If you want to access Google API on behalf of the user
+        prompt: "select_account", // Forces account selection
+        forceCodeForRefreshToken: true, // Android only
       });
+      console.log("✅ Google Sign-In configured successfully");
+    } catch (error) {
+      console.log("⚠️ Error configuring Google Sign-In:", error);
     }
-  }, [request, redirectUri]);
+  };
+
+  // Initialize Google Sign-In configuration
+  useEffect(() => {
+    const initGoogleSignIn = async () => {
+      console.log("🔧 Initializing Google Sign-In...");
+      const available = await initializeGoogleSignIn();
+      setIsGoogleSignInAvailable(available);
+
+      if (available) {
+        console.log("🔧 Configuring Google Sign-In...");
+        configureGoogleSignIn();
+      } else {
+        console.log("⚠️ Google Sign-In not available in this environment");
+      }
+    };
+
+    initGoogleSignIn();
+  }, []);
 
   // Set up auth state listener
   useEffect(() => {
-    console.log('🔥 Setting up Firebase auth listener...');
-    
-    // Add a small delay to ensure Firebase is properly initialized
+    console.log("🔥 Setting up Firebase auth listener...");
+
     const initTimer = setTimeout(() => {
       if (!auth) {
-        console.error('❌ Auth not initialized after timeout');
+        console.error("❌ Auth not initialized after timeout");
         setInitializing(false);
         return;
       }
 
       const unsubscribe = onAuthStateChanged(auth, (user) => {
-        console.log('🔐 Auth state changed:', user ? `User: ${user.email} (${user.uid})` : 'No user');
+        console.log(
+          "🔐 Auth state changed:",
+          user ? `User: ${user.email} (${user.uid})` : "No user"
+        );
         setUser(user);
-        
+
         if (initializing) {
-          console.log('✅ Firebase auth initialization complete');
+          console.log("✅ Firebase auth initialization complete");
           setInitializing(false);
         }
         setLoading(false);
       });
 
-      // Cleanup function
       return () => {
-        console.log('🔌 Unsubscribing from auth state changes');
+        console.log("🔌 Unsubscribing from auth state changes");
         unsubscribe();
       };
-    }, 1000); // Increased timeout for better reliability
+    }, 1000);
 
     return () => {
       clearTimeout(initTimer);
     };
   }, [initializing]);
 
-  // Handle Google auth response with improved error handling
-  useEffect(() => {
-    if (response?.type === 'success') {
-      console.log('✅ Google auth success, processing token...');
-      const { authentication } = response;
-      handleGoogleSignIn(authentication);
-    } else if (response?.type === 'error') {
-      console.error('❌ Google Auth Error:', response.error);
-      console.error('Error params:', response.params);
-      setLoading(false);
-    } else if (response?.type === 'cancel') {
-      console.log('⚠️ Google auth cancelled by user');
-      setLoading(false);
-    } else if (response?.type === 'dismiss') {
-      console.log('⚠️ Google auth dismissed');
-      setLoading(false);
-    }
-  }, [response]);
-
-  const handleGoogleSignIn = async (authentication: any) => {
-    if (!auth) {
-      console.error('❌ Firebase Auth not ready');
-      setLoading(false);
-      return { success: false, error: 'Authentication service not ready' };
-    }
-
-    try {
-      console.log('🔄 Processing Google authentication...');
-      console.log('Authentication object:', authentication);
-
-      if (!authentication?.idToken) {
-        throw new Error('No ID token received from Google');
-      }
-
-      // Create Firebase credential
-      const credential = GoogleAuthProvider.credential(authentication.idToken, authentication.accessToken);
-      console.log('🔑 Created Firebase credential');
-
-      // Sign in with Firebase
-      const result = await signInWithCredential(auth, credential);
-      console.log('✅ Firebase sign-in successful:', result.user.email);
-
-      // Create user profile document if it doesn't exist
-      await createUserProfileIfNeeded(result.user);
-
-      return { success: true, user: result.user };
-    } catch (error: any) {
-      console.error('❌ Google Sign In Error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      
-      // Provide more specific error messages
-      let friendlyError = error.message;
-      if (error.code === 'auth/network-request-failed') {
-        friendlyError = 'Network error. Please check your internet connection.';
-      } else if (error.code === 'auth/popup-blocked') {
-        friendlyError = 'Popup was blocked. Please allow popups and try again.';
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        friendlyError = 'Sign-in was cancelled. Please try again.';
-      }
-      
-      return { success: false, error: friendlyError };
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const createUserProfileIfNeeded = async (user: User) => {
     if (!db) {
-      console.error('❌ Firestore not ready');
+      console.error("❌ Firestore not ready");
       return;
     }
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (!docSnap.exists()) {
-        console.log('📝 Creating user profile document...');
+        console.log("📝 Creating user profile document...");
         const profileData = {
-          displayName: user.displayName || '',
-          email: user.email || '',
+          displayName: user.displayName || "",
+          email: user.email || "",
           uid: user.uid,
-          photoURL: user.photoURL || '',
+          photoURL: user.photoURL || "",
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
-        
+
         await setDoc(userDocRef, profileData);
-        console.log('✅ User profile document created');
+        console.log("✅ User profile document created");
       } else {
-        console.log('📄 User profile already exists, updating last login...');
-        // Update last login time
-        await setDoc(userDocRef, {
-          lastLoginAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
+        console.log("📄 User profile already exists, updating last login...");
+        await setDoc(
+          userDocRef,
+          {
+            lastLoginAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
       }
     } catch (error) {
-      console.error('❌ Error creating/updating user profile:', error);
+      console.error("❌ Error creating/updating user profile:", error);
     }
   };
 
   const fetchUserProfile = async (): Promise<ProfileData | null> => {
     if (!auth || !db || !auth.currentUser) {
-      console.log('⚠️ Auth/DB not ready or no current user');
+      console.log("⚠️ Auth/DB not ready or no current user");
       return null;
     }
 
     try {
-      console.log('📖 Fetching profile for user:', auth.currentUser.uid);
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      console.log("📖 Fetching profile for user:", auth.currentUser.uid);
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (docSnap.exists()) {
-        console.log('✅ Profile data found');
+        console.log("✅ Profile data found");
         return docSnap.data() as ProfileData;
       } else {
-        console.log('📭 No profile document found, creating one...');
+        console.log("📭 No profile document found, creating one...");
         await createUserProfileIfNeeded(auth.currentUser);
         return {
-          displayName: auth.currentUser.displayName || '',
-          email: auth.currentUser.email || '',
+          displayName: auth.currentUser.displayName || "",
+          email: auth.currentUser.email || "",
         };
       }
     } catch (error: any) {
-      console.error('❌ Error fetching user profile:', error);
+      console.error("❌ Error fetching user profile:", error);
       return null;
     }
   };
 
-  const updateUserProfile = async (profileData: ProfileData): Promise<{ success: boolean; error?: string }> => {
+  const updateUserProfile = async (
+    profileData: ProfileData
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!auth || !db || !auth.currentUser) {
-      return { success: false, error: 'Authentication service not ready or no user logged in' };
+      return {
+        success: false,
+        error: "Authentication service not ready or no user logged in",
+      };
     }
 
     try {
       setLoading(true);
-      console.log('📝 Updating profile for user:', auth.currentUser.uid);
+      console.log("📝 Updating profile for user:", auth.currentUser.uid);
 
-      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
 
-      // Update Firebase Auth display name if changed
-      if (profileData.displayName && profileData.displayName !== auth.currentUser.displayName) {
-        console.log('🔄 Updating Firebase Auth display name...');
-        await updateFirebaseAuthProfile(auth.currentUser, { displayName: profileData.displayName });
+      if (
+        profileData.displayName &&
+        profileData.displayName !== auth.currentUser.displayName
+      ) {
+        console.log("🔄 Updating Firebase Auth display name...");
+        await updateFirebaseAuthProfile(auth.currentUser, {
+          displayName: profileData.displayName,
+        });
       }
 
-      // Update Firestore document
-      console.log('💾 Updating Firestore document...');
-      await setDoc(userDocRef, {
-        ...profileData,
-        email: auth.currentUser.email,
-        uid: auth.currentUser.uid,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      console.log("💾 Updating Firestore document...");
+      await setDoc(
+        userDocRef,
+        {
+          ...profileData,
+          email: auth.currentUser.email,
+          uid: auth.currentUser.uid,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-      console.log('✅ Profile updated successfully');
+      console.log("✅ Profile updated successfully");
       return { success: true };
     } catch (error: any) {
-      console.error('❌ Update Profile Error:', error);
+      console.error("❌ Update Profile Error:", error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
   };
 
+  // REACT NATIVE GOOGLE SIGN-IN IMPLEMENTATION
   const signInWithGoogle = async () => {
+    // Check if Google Sign-In is available
+    if (!isGoogleSignInAvailable || !GoogleSignin) {
+      console.log("⚠️ Google Sign-In not available");
+      return {
+        success: false,
+        error:
+          "Google Sign-In is not available in this environment. Please use a development build on Android.",
+      };
+    }
+
     if (initializing) {
-      console.log('⚠️ Auth still initializing...');
-      return { success: false, error: 'Authentication service still initializing' };
+      console.log("⚠️ Auth still initializing...");
+      return {
+        success: false,
+        error: "Authentication service still initializing",
+      };
     }
 
     if (!auth) {
-      console.error('❌ Auth not ready');
-      return { success: false, error: 'Authentication service not ready' };
+      console.error("❌ Auth not ready");
+      return { success: false, error: "Authentication service not ready" };
     }
 
     try {
       setLoading(true);
-      console.log('🚀 Starting Google sign-in...');
+      console.log("🚀 Starting React Native Google sign-in...");
 
-      if (!request) {
-        console.log('⚠️ Google Auth request not ready yet...');
-        return { success: false, error: 'Google Auth request not ready. Please try again.' };
+      // First sign out to force account picker (optional)
+      try {
+        await GoogleSignin.signOut();
+      } catch (signOutError) {
+        console.log("Sign out error (ignored):", signOutError);
       }
 
-      console.log('📱 Prompting user for authentication...');
-      const result = await promptAsync();
+      // Check Play Services (Android)
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
 
-      console.log('📱 Auth prompt result:', result.type);
+      // Get the users ID token
+      console.log("📱 Opening Google Sign-In popup...");
+      const signInResult = await GoogleSignin.signIn();
 
-      if (result.type === 'success') {
-        console.log('✅ User completed authentication flow');
-        // handleGoogleSignIn will be called automatically via useEffect
-        return { success: true, message: 'Processing authentication...' };
-      } else if (result.type === 'cancel') {
-        setLoading(false);
-        return { success: false, error: 'User cancelled the sign-in process' };
-      } else {
-        setLoading(false);
-        console.error('Auth result error:', result);
-        return { success: false, error: `Google sign in failed: ${result.type}` };
+      // Extract ID token
+      let idToken = signInResult.data?.idToken;
+      if (!idToken) {
+        idToken = signInResult.idToken;
       }
+      if (!idToken) {
+        throw new Error("No ID token received from Google");
+      }
+
+      console.log("🔑 Creating Firebase credential...");
+      // Create a Google credential with the token
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+
+      // Sign-in the user with the credential
+      console.log("🔥 Signing in with Firebase...");
+      const result = await signInWithCredential(auth, googleCredential);
+      console.log("✅ Google sign-in successful:", result.user.email);
+
+      // Create user profile document if needed
+      await createUserProfileIfNeeded(result.user);
+
+      return { success: true, user: result.user };
     } catch (error: any) {
-      console.error('❌ Google Sign In Error:', error);
+      console.error("❌ Google Sign In Error:", error);
       setLoading(false);
-      return { success: false, error: error.message };
+
+      // Handle specific Google Sign-In errors
+      if (error?.code && statusCodes) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            return { success: false, error: "Sign in was cancelled" };
+          case statusCodes.IN_PROGRESS:
+            return { success: false, error: "Sign in is already in progress" };
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            return {
+              success: false,
+              error: "Play services not available or outdated",
+            };
+          default:
+            return { success: false, error: `Sign in failed: ${error.code}` };
+        }
+      } else if (error instanceof Error) {
+        return {
+          success: false,
+          error: error.message || "An unexpected error occurred",
+        };
+      } else {
+        return {
+          success: false,
+          error: "An unexpected error occurred during sign in",
+        };
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     if (initializing || !auth) {
-      return { success: false, error: 'Authentication service not ready' };
+      return { success: false, error: "Authentication service not ready" };
     }
 
     try {
       setLoading(true);
-      console.log('📧 Signing in with email:', email);
-      
+      console.log("📧 Signing in with email:", email);
+
+      // Add network connectivity check
+      console.log("🌐 Testing Firebase connectivity...");
+
       const result = await signInWithEmailAndPassword(auth, email, password);
       await createUserProfileIfNeeded(result.user);
 
-      console.log('✅ Email sign-in successful');
+      console.log("✅ Email sign-in successful");
       return { success: true, user: result.user };
     } catch (error: any) {
-      console.error('❌ Email Sign In Error:', error);
+      console.error("❌ Email Sign In Error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
 
-      let friendlyMessage = 'Something went wrong. Please try again.';
+      let friendlyMessage = "Something went wrong. Please try again.";
       switch (error.code) {
-        case 'auth/invalid-email':
-          friendlyMessage = 'The email address is badly formatted.';
+        case "auth/network-request-failed":
+          friendlyMessage =
+            "Network error. Please check your internet connection and try again.";
           break;
-        case 'auth/user-disabled':
-          friendlyMessage = 'This account has been disabled.';
+        case "auth/invalid-email":
+          friendlyMessage = "The email address is badly formatted.";
           break;
-        case 'auth/user-not-found':
-          friendlyMessage = 'No user found with this email address.';
+        case "auth/user-disabled":
+          friendlyMessage = "This account has been disabled.";
           break;
-        case 'auth/wrong-password':
-          friendlyMessage = 'Incorrect password. Please try again.';
+        case "auth/user-not-found":
+          friendlyMessage = "No user found with this email address.";
           break;
-        case 'auth/invalid-credential':
-          friendlyMessage = 'The provided credentials are invalid.';
+        case "auth/wrong-password":
+          friendlyMessage = "Incorrect password. Please try again.";
           break;
-        case 'auth/too-many-requests':
-          friendlyMessage = 'Too many failed attempts. Please try again later.';
+        case "auth/invalid-credential":
+          friendlyMessage = "The provided credentials are invalid.";
+          break;
+        case "auth/too-many-requests":
+          friendlyMessage = "Too many failed attempts. Please try again later.";
+          break;
+        case "auth/app-not-authorized":
+          friendlyMessage = "App not authorized. Please contact support.";
+          break;
+        case "auth/api-key-not-valid":
+          friendlyMessage = "Configuration error. Please contact support.";
           break;
         default:
-          friendlyMessage = error.message || 'An unknown error occurred.';
+          friendlyMessage = error.message || "An unknown error occurred.";
       }
 
       return { success: false, error: friendlyMessage };
@@ -388,16 +455,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string, displayName = '') => {
+  // Add similar enhanced error handling to signUpWithEmail
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    displayName = ""
+  ) => {
     if (initializing || !auth) {
-      return { success: false, error: 'Authentication service not ready' };
+      return { success: false, error: "Authentication service not ready" };
     }
 
     try {
       setLoading(true);
-      console.log('📝 Creating account with email:', email);
-      
-      const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("📝 Creating account with email:", email);
+
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
       if (displayName && result.user) {
         await updateFirebaseAuthProfile(result.user, { displayName });
@@ -405,24 +481,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await createUserProfileIfNeeded(result.user);
 
-      console.log('✅ Account created successfully');
+      console.log("✅ Account created successfully");
       return { success: true, user: result.user };
     } catch (error: any) {
-      console.error('❌ Email Sign Up Error:', error);
+      console.error("❌ Email Sign Up Error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
 
-      let friendlyMessage = 'Something went wrong. Please try again.';
+      let friendlyMessage = "Something went wrong. Please try again.";
       switch (error.code) {
-        case 'auth/email-already-in-use':
-          friendlyMessage = 'An account with this email already exists.';
+        case "auth/network-request-failed":
+          friendlyMessage =
+            "Network error. Please check your internet connection and try again.";
           break;
-        case 'auth/invalid-email':
-          friendlyMessage = 'The email address is badly formatted.';
+        case "auth/email-already-in-use":
+          friendlyMessage = "An account with this email already exists.";
           break;
-        case 'auth/weak-password':
-          friendlyMessage = 'Password should be at least 6 characters.';
+        case "auth/invalid-email":
+          friendlyMessage = "The email address is badly formatted.";
+          break;
+        case "auth/weak-password":
+          friendlyMessage = "Password should be at least 6 characters.";
+          break;
+        case "auth/app-not-authorized":
+          friendlyMessage = "App not authorized. Please contact support.";
+          break;
+        case "auth/api-key-not-valid":
+          friendlyMessage = "Configuration error. Please contact support.";
           break;
         default:
-          friendlyMessage = error.message || 'An unknown error occurred.';
+          friendlyMessage = error.message || "An unknown error occurred.";
       }
 
       return { success: false, error: friendlyMessage };
@@ -433,19 +521,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInAnonymouslyUser = async () => {
     if (initializing || !auth) {
-      return { success: false, error: 'Authentication service not ready' };
+      return { success: false, error: "Authentication service not ready" };
     }
 
     try {
       setLoading(true);
-      console.log('👤 Signing in anonymously...');
-      
+      console.log("👤 Signing in anonymously...");
+
       const result = await signInAnonymously(auth);
-      
-      console.log('✅ Anonymous sign-in successful');
+
+      console.log("✅ Anonymous sign-in successful");
       return { success: true, user: result.user };
     } catch (error: any) {
-      console.error('❌ Anonymous Sign In Error:', error);
+      console.error("❌ Anonymous Sign In Error:", error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
@@ -454,19 +542,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     if (!auth) {
-      return { success: false, error: 'Authentication service not ready' };
+      return { success: false, error: "Authentication service not ready" };
     }
 
     try {
       setLoading(true);
-      console.log('🚪 Signing out...');
-      
+      console.log("🚪 Signing out...");
+
+      // Sign out from Firebase
       await signOut(auth);
-      
-      console.log('✅ Sign out successful');
+
+      // Sign out from Google (only if available)
+      if (isGoogleSignInAvailable && GoogleSignin) {
+        try {
+          await GoogleSignin.signOut();
+        } catch (googleSignOutError) {
+          console.log("Google sign out error (ignored):", googleSignOutError);
+        }
+      }
+
+      console.log("✅ Sign out successful");
       return { success: true };
     } catch (error: any) {
-      console.error('❌ Logout Error:', error);
+      console.error("❌ Logout Error:", error);
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
@@ -477,6 +575,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     loading,
     initializing,
+    isGoogleSignInAvailable,
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
@@ -487,14 +586,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUserProfile,
   };
 
-  // Show loading screen during initialization
   if (initializing) {
-    return null; // You can replace this with a loading component
+    return null;
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
