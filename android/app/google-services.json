@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "139120385098",
+    "project_id": "pakistan-disaster-ready",
+    "storage_bucket": "pakistan-disaster-ready.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139120385098:android:6bb0b64fcdf974d9281ab3",
+        "android_client_info": {
+          "package_name": "com.anonymous.disasterApp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "139120385098-0a7oh5t8jhlcpbe2utm3h2j5ig63o6i6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.disasterApp",
+            "certificate_hash": "a0dd7bbb227eadf92451939b8fc48c5274055ff1"
+          }
+        },
+        {
+          "client_id": "139120385098-pqfbrjjp3fqubai9c7ppo31c376umrl7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9BM-QsI3kzREN-9jKMSRT7MGqp1YzzVw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "139120385098-34cjt9mov9424cus46ujq11gkgu3iulc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "139120385098-orf5ej61nk5fo7fcicf1oqrudaepujbs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.anonymous.disasterApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

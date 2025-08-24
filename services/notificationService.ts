@@ -44,15 +44,16 @@ Notifications.setNotificationHandler({
       source,
       priority,
       showBanner,
-      originalFCM
+      originalFCM,
     });
 
     // FORCE show alerts for FCM notifications, banner requests, or high priority
-    const shouldShowAlert = source === "fcm" || 
-                           showBanner === true || 
-                           originalFCM === true ||
-                           priority === "critical" || 
-                           priority === "high";
+    const shouldShowAlert =
+      source === "fcm" ||
+      showBanner === true ||
+      originalFCM === true ||
+      priority === "critical" ||
+      priority === "high";
 
     console.log("Notification decision:", { shouldShowAlert });
 
@@ -78,19 +79,21 @@ const isExpoGo = () => {
 };
 
 // Helper function to check if FCM is available
-const isFCMAvailable = () => {
+const isFCMAvailable = async (): Promise<boolean> => {
   try {
-    // Check if we're in Expo Go
+    // Check if we're in Expo Go (FCM not available)
     if (isExpoGo()) {
       console.log("Running in Expo Go - FCM not available");
       return false;
     }
 
-    // Check if Firebase is available (will throw if not linked)
-    require.resolve('@react-native-firebase/messaging');
+    // Use a dynamic import within a try-catch block to check for module existence.
+    // This is the modern, asynchronous way to handle optional modules.
+    await import("@react-native-firebase/messaging");
+    console.log("Firebase messaging module is available.");
     return true;
-  } catch (error) {
-    console.log("Firebase messaging not available:", error.message);
+  } catch (error: any) {
+    console.log("Firebase messaging not available:", error.message || error);
     return false;
   }
 };
@@ -105,7 +108,7 @@ const initializeFCM = async () => {
     }
 
     console.log("Attempting to initialize FCM...");
-    
+
     // Dynamic import to avoid loading Firebase in Expo Go
     const fcmModule = await import("@react-native-firebase/messaging");
     messaging = fcmModule.default;
@@ -229,14 +232,14 @@ class NotificationService {
       // CRITICAL: Handle background messages (when app is in background/closed)
       messaging().setBackgroundMessageHandler(async (remoteMessage) => {
         console.log("Background/Closed FCM message received:", remoteMessage);
-        
+
         // Store the notification for when app opens
         await this.handleFCMMessage(remoteMessage, false);
-        
+
         // Background messages automatically show system notifications
         // No need to schedule local notifications here
         console.log("Background FCM message processed and stored");
-        
+
         return Promise.resolve();
       });
 
@@ -244,22 +247,25 @@ class NotificationService {
       const unsubscribeForeground = messaging().onMessage(
         async (remoteMessage) => {
           console.log("🔥 FOREGROUND FCM message received:", remoteMessage);
-          
+
           // CRITICAL: Show banner FIRST, then process
           console.log("🎯 Showing banner immediately...");
           await this.showFCMNotificationBanner(remoteMessage);
-          
+
           // Then handle and store the message
           console.log("📝 Processing and storing message...");
           await this.handleFCMMessage(remoteMessage, true);
-          
+
           console.log("✅ Foreground FCM processing complete");
         }
       );
 
       // Handle notification opened from background/closed state
       messaging().onNotificationOpenedApp((remoteMessage) => {
-        console.log("FCM notification opened app from background:", remoteMessage);
+        console.log(
+          "FCM notification opened app from background:",
+          remoteMessage
+        );
         this.handleNotificationOpen(remoteMessage);
       });
 
@@ -268,7 +274,10 @@ class NotificationService {
         .getInitialNotification()
         .then((remoteMessage) => {
           if (remoteMessage) {
-            console.log("FCM notification opened app from closed state:", remoteMessage);
+            console.log(
+              "FCM notification opened app from closed state:",
+              remoteMessage
+            );
             this.handleNotificationOpen(remoteMessage);
           }
         });
@@ -279,7 +288,9 @@ class NotificationService {
         unsubscribeForeground();
       });
 
-      console.log("FCM setup completed for all app states (foreground, background, closed)");
+      console.log(
+        "FCM setup completed for all app states (foreground, background, closed)"
+      );
     } catch (error) {
       console.error("FCM setup error:", error);
       // Fallback to Expo notifications on FCM failure
@@ -292,22 +303,26 @@ class NotificationService {
   private handleNotificationOpen(remoteMessage: any) {
     try {
       console.log("Processing opened notification:", remoteMessage);
-      
+
       const { notification, data } = remoteMessage;
-      
+
       if (data?.type === "evacuation") {
-        console.log("Evacuation notification opened - should navigate to evacuation screen");
+        console.log(
+          "Evacuation notification opened - should navigate to evacuation screen"
+        );
         // Add navigation logic here if needed
       } else if (data?.type === "emergency") {
-        console.log("Emergency notification opened - should show emergency details");
+        console.log(
+          "Emergency notification opened - should show emergency details"
+        );
         // Add emergency handling logic here
       }
-      
+
       // Mark as read if we have the notification ID
       if (data?.id) {
         this.markNotificationAsRead(data.id);
       }
-      
+
       // Notify callback about opened notification
       if (this.onNotificationReceived && notification) {
         const notificationData: NotificationData = {
@@ -322,7 +337,7 @@ class NotificationService {
           source: "fcm",
           data: data || {},
         };
-        
+
         this.onNotificationReceived(notificationData);
       }
     } catch (error) {
@@ -334,7 +349,7 @@ class NotificationService {
   private async showFCMNotificationBanner(remoteMessage: any) {
     try {
       const { notification, data } = remoteMessage;
-      
+
       if (!notification) {
         console.log("No notification content in FCM message");
         return;
@@ -372,11 +387,19 @@ class NotificationService {
         trigger: null, // Show IMMEDIATELY
       };
 
-      console.log("📱 Scheduling immediate FCM banner with request:", notificationRequest);
+      console.log(
+        "📱 Scheduling immediate FCM banner with request:",
+        notificationRequest
+      );
 
-      const notificationId = await Notifications.scheduleNotificationAsync(notificationRequest);
-      
-      console.log("✅ FCM banner notification scheduled with ID:", notificationId);
+      const notificationId = await Notifications.scheduleNotificationAsync(
+        notificationRequest
+      );
+
+      console.log(
+        "✅ FCM banner notification scheduled with ID:",
+        notificationId
+      );
 
       // ADDITIONAL: Try alternative approach with presentNotificationAsync if available
       try {
@@ -389,12 +412,13 @@ class NotificationService {
         });
         console.log("✅ Alternative present method also called");
       } catch (presentError) {
-        console.log("ℹ️ Present method not available, relying on schedule method");
+        console.log(
+          "ℹ️ Present method not available, relying on schedule method"
+        );
       }
-
     } catch (error) {
       console.error("❌ Error showing FCM notification banner:", error);
-      
+
       // FALLBACK: Try basic notification as last resort
       try {
         await Notifications.scheduleNotificationAsync({
@@ -458,7 +482,10 @@ class NotificationService {
         return;
       }
 
-      console.log(`Processing FCM message (foreground: ${isForeground}):`, notification.title);
+      console.log(
+        `Processing FCM message (foreground: ${isForeground}):`,
+        notification.title
+      );
 
       // Generate hash to prevent duplicates
       const alertHash = this.generateAlertHash(
@@ -469,14 +496,19 @@ class NotificationService {
 
       // For background messages, be less strict about duplicates since they might be important
       const isDuplicate = isForeground && this.hasAlertBeenShown(alertHash);
-      
+
       if (isDuplicate) {
-        console.log("Duplicate FCM message prevented (foreground only):", notification.title);
+        console.log(
+          "Duplicate FCM message prevented (foreground only):",
+          notification.title
+        );
         return;
       }
 
       const notificationData: NotificationData = {
-        id: data?.id || `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id:
+          data?.id ||
+          `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: data?.type || "info",
         title: notification.title || "",
         message: notification.body || "",
@@ -496,7 +528,7 @@ class NotificationService {
 
       // Store notification
       await this.storeNotification(notificationData);
-      
+
       // Only mark as shown for foreground to allow background duplicates if needed
       if (isForeground) {
         await this.markAlertAsShown(alertHash);
@@ -507,7 +539,11 @@ class NotificationService {
         this.onNotificationReceived(notificationData);
       }
 
-      console.log(`FCM notification processed: ${notification.title} (${isForeground ? 'foreground' : 'background'})`);
+      console.log(
+        `FCM notification processed: ${notification.title} (${
+          isForeground ? "foreground" : "background"
+        })`
+      );
     } catch (error) {
       console.error("Error handling FCM message:", error);
     }
@@ -616,7 +652,7 @@ class NotificationService {
   }) {
     try {
       const priority = notificationContent.data?.priority || "medium";
-      
+
       await Notifications.scheduleNotificationAsync({
         content: {
           title: notificationContent.title || "New Notification",
@@ -625,7 +661,10 @@ class NotificationService {
             ...notificationContent.data,
             source: "local",
           },
-          sound: priority === "critical" || priority === "high" ? "default" : undefined,
+          sound:
+            priority === "critical" || priority === "high"
+              ? "default"
+              : undefined,
           priority: this.getNotificationPriority(priority),
           vibrate: priority === "critical" ? [0, 250, 250, 250] : [0, 250],
         },
@@ -1033,19 +1072,20 @@ class NotificationService {
         );
 
         const data = notification.request.content.data;
-        
+
         // Handle FCM notifications specially
         if (data?.source === "fcm" && data?.fcmMessageId) {
           console.log("Processing received FCM notification in foreground");
-          
+
           // Find corresponding stored notification
           if (data?.notificationId || data?.fcmMessageId) {
             const storedNotifications = await this.getStoredNotifications();
             const storedNotification = storedNotifications.find(
-              (n) => 
-                n.id === data.notificationId || 
+              (n) =>
+                n.id === data.notificationId ||
                 n.data?.fcmMessageId === data.fcmMessageId ||
-                (n.source === "fcm" && n.title === notification.request.content.title)
+                (n.source === "fcm" &&
+                  n.title === notification.request.content.title)
             );
 
             if (storedNotification && this.onNotificationReceived) {
@@ -1077,22 +1117,30 @@ class NotificationService {
           );
 
           const data = response.notification.request.content.data;
-          
+
           // Handle different notification types when tapped
           if (data?.type === "evacuation") {
-            console.log("Evacuation notification tapped - should navigate to evacuation screen");
+            console.log(
+              "Evacuation notification tapped - should navigate to evacuation screen"
+            );
             // Add your navigation logic here
           } else if (data?.type === "emergency") {
-            console.log("Emergency notification tapped - should show emergency details");
+            console.log(
+              "Emergency notification tapped - should show emergency details"
+            );
             // Add your emergency handling logic here
           } else if (data?.type === "seismic") {
-            console.log("Seismic notification tapped - should show earthquake details");
+            console.log(
+              "Seismic notification tapped - should show earthquake details"
+            );
             // Add your earthquake details logic here
           } else if (data?.type === "weather") {
-            console.log("Weather notification tapped - should show weather details");
+            console.log(
+              "Weather notification tapped - should show weather details"
+            );
             // Add your weather details logic here
           }
-          
+
           // Mark as read
           if (data?.notificationId) {
             await this.markNotificationAsRead(data.notificationId);
@@ -1280,7 +1328,7 @@ class NotificationService {
   // NEW: Force show a test banner notification (for debugging)
   async forceShowTestBanner() {
     console.log("🧪 FORCING test banner notification...");
-    
+
     try {
       // Test 1: Maximum priority notification
       await Notifications.scheduleNotificationAsync({
@@ -1319,7 +1367,6 @@ class NotificationService {
           console.log("ℹ️ Present method not available:", error.message);
         }
       }, 3000);
-
     } catch (error) {
       console.error("❌ Force test banner failed:", error);
     }
@@ -1400,7 +1447,7 @@ class NotificationService {
     try {
       const notifications = await this.getStoredNotifications();
       const total = notifications.length;
-      const unread = notifications.filter(n => !n.read).length;
+      const unread = notifications.filter((n) => !n.read).length;
       const byType = notifications.reduce((acc, notif) => {
         acc[notif.type] = (acc[notif.type] || 0) + 1;
         return acc;
