@@ -1,7 +1,6 @@
 {
   "expo": {
     "name": "PDR",
-    "owner": "abdullah797",
     "slug": "disasterApp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,12 +14,14 @@
       "buildNumber": "1.0.1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
-        "NSLocationAlwaysUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area, even when the app is in the background.",
+        "NSLocationAlwaysUsageDescription": "This app needs location access to provide you with local weather forecasts and disaster alerts for your area, even when the app is closed.",
+        "NSLocationUsageDescription": "This app needs location access to provide disaster alerts and weather information.",
         "UIBackgroundModes": [
           "location",
           "background-processing",
-          "background-fetch"
+          "background-fetch",
+          "remote-notification"
         ],
         "CFBundleURLTypes": [
           {
@@ -37,7 +38,8 @@
       }
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "./android/app/google-services.json",
+      "launchMode": "singleTask",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -57,7 +59,6 @@
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.disasterApp",
       "versionCode": 2,
-
       "intentFilters": [
         {
           "action": "VIEW",
@@ -76,8 +77,25 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging",
+      [
+        "@react-native-firebase/app",
+        {
+          "android": {
+            "googleServicesFile": "./android/app/google-services.json"
+          }
+        }
+      ],
+      [
+        "@react-native-firebase/messaging",
+        {
+          "android": {
+            "enabled": true
+          },
+          "ios": {
+            "enabled": false
+          }
+        }
+      ],
       [
         "@react-native-google-signin/google-signin",
         {
@@ -108,7 +126,8 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#4ECDC4"
+          "color": "#4ECDC4",
+          "sounds": ["./assets/sounds/notification.wav"]
         }
       ],
       "expo-task-manager",

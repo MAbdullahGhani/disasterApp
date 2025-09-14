@@ -43,7 +43,7 @@ export function ThemedText({
 
   const rtlStyle = {
     textAlign: getTextAlign(),
-    writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr',
+    writingDirection: I18nManager.isRTL ? 'rtl' : 'ltr' as 'rtl' | 'ltr',
   };
 
   return (

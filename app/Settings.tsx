@@ -1,22 +1,18 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
-import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { useColorScheme, I18nManager, Appearance } from "react-native";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  View,
-  Linking,
-} from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import { useNavigation } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Alert, Appearance, I18nManager, Linking, ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity, useColorScheme, View
+} from "react-native";
 
 import LanguageSelector from "../components/LanguageSelector";
 
@@ -430,11 +426,12 @@ export default function SettingsScreen() {
             color="#aaa"
           />
         </TouchableOpacity>
-        <Ionicons name="settings" size={24} color={themeColors.iconColor} />
+        <Ionicons name="settings" size={24}  style={{ marginTop: 7, marginLeft: 30 }} color={themeColors.iconColor} />
         <ThemedText
           style={[
             styles.headerTitle,
             {
+
               marginLeft: I18nManager.isRTL ? 0 : 12,
               marginRight: I18nManager.isRTL ? 12 : 0,
             },
@@ -446,7 +443,7 @@ export default function SettingsScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedView style={styles.section}>
-          <SectionHeader title={t("notifications")} />
+          <SectionHeader title={t("notifications.headerTitle")} />
           <SettingItem
             icon="notifications-outline"
             title={<ThemedText>{t("pushNotifications")}</ThemedText>}
@@ -540,9 +537,10 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 20,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: "center",
@@ -551,13 +549,15 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    bottom: 60,
+    // bottom: 50,
+    top: 48,
+    left: 5,
     zIndex: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    paddingTop: 10,
+    paddingTop: 14,
   },
   content: {
     flex: 1,

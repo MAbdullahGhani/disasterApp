@@ -312,7 +312,7 @@ export default function StatsScreen() {
                                 <Circle cx="60" cy="60" r="50" stroke={themeColors.progressBg} strokeWidth="10" fill="transparent" />
                                 <Circle cx="60" cy="60" r="50" stroke="#FF6B35" strokeWidth="10" fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
                             </G>
-                            <SvgText x="45" y="65" textAnchor="middle" fontSize="24" fontWeight="bold" fill={themeColors.svgText}>{overallProgress}%</SvgText>
+                            <SvgText x="45" y="65" textAnchor="middle" fontSize="24" fontWeight="bold" fill={themeColors.svgText}>{overallProgress} %</SvgText>
                         </Svg>
                     </View>
                 </ThemedView>

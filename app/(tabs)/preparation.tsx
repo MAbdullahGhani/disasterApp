@@ -24,6 +24,13 @@ export default function TabTwoScreen() {
     if (user.email) return user.email.charAt(0).toUpperCase();
     return "G";
   };
+
+  const handleToggleChecklistItem = (itemId) => {
+    if (toggleChecklistItem && typeof toggleChecklistItem === 'function') {
+      toggleChecklistItem(itemId);
+    }
+  };
+
   const renderHeader = () => (
     <ThemedView style={styles.header}>
       <ThemedText type="title">{t("title")}</ThemedText>
@@ -96,7 +103,7 @@ export default function TabTwoScreen() {
         {items.map((item) => (
           <TouchableOpacity
             key={item.id}
-            onPress={() => toggleChecklistItem(item.id)}
+            onPress={() => handleToggleChecklistItem(item.id)}
           >
             <ThemedView style={styles.checklistItem}>
               <View style={styles.checklistIcon}>
@@ -195,7 +202,6 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... your existing styles remain unchanged
   container: {
     flex: 1,
   },
@@ -293,6 +299,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
     backgroundColor: "transparent",
+    marginBottom: 20,
   },
   actionButton: {
     borderRadius: 15,

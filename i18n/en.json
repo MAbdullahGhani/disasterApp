@@ -39,7 +39,7 @@
     "signIn": "Sign In",
     "orContinueWith": "or continue with",
     "continueWithGoogle": "Continue with Google",
-    "googleSignInInfo": "Google Sign-in available in development builds",
+    "googleSignInInfo": "Google Sign-in not available on Expo",
     "dontHaveAccount": "Don't have an account? ",
     "alreadyHaveAccount": "Already have an account? ",
     "signUp": "Sign Up",
@@ -115,6 +115,14 @@
   "areasMonitored": "Areas Monitored",
   "downloadMyData": "Download My Data",
   "deleteAccount": "Delete Account",
+  "deleteAccountConfirmation": {
+    "title": "Delete Account?",
+    "message": "This is irreversible. All your data, including progress and badges, will be permanently lost. Are you sure you want to proceed?"
+  },
+  "delete": "Delete",
+  "accountDeletedSuccess": "Your account has been successfully deleted.",
+  "accountDeleteFailed": "Failed to delete account. Please try again.",
+  "accountDeleteError": "An unexpected error occurred while trying to delete your account.",
   "warning": "Warning",
   "cancel": "Cancel",
   "confirm": "Confirm",
@@ -736,6 +744,7 @@
     }
   },
   "home": {
+    "ndmaAlertsTitle": "Pakistan Official Advisories",
     "weatherAlerts": {
       "rainWarningTitle": "Rain Warning",
       "rainWarningMessage": "Chance of rain ({{precipitation}}%) expected in {{city}} within 24 hours. Consider taking an umbrella.",
@@ -850,11 +859,142 @@
       "description": "Provincial Disaster Management response",
       "source": "PDMA"
     },
+    "ffd": {
+      "title": "PDMA FFD",
+      "description": "Provincial Disaster Management and Flood Forecasting Division",
+      "source": "FFD"
+    },
     "rescue": {
       "title": "Rescue 1122",
       "description": "Emergency rescue services - Call 1122",
       "source": "Rescue Service"
     }
   },
-  "cityLang": "en"
+  "cityLang": "en",
+  "screenTitle": "Emergency Contacts",
+  "subtitle": "Pakistan Emergency & Disaster Helplines",
+  "searchPlaceholder": "Search...",
+  "noContactsFound": "No contacts found.",
+  "callAlertTitle": "Call {name}?",
+  "callAlertMessage": "Number: {number}",
+  "cancelButton": "Cancel",
+  "callButton": "Call Now",
+  "badge247": "24/7",
+  "emergencyCategories": {
+    "all": "All",
+    "emergency": "Emergency",
+    "disaster": "Disaster",
+    "medical": "Medical",
+    "police": "Police",
+    "fire": "Fire",
+    "utility": "Utility",
+    "government": "Government"
+  },
+  "contacts": {
+    "1": {
+      "name": "Rescue 1122",
+      "description": "National Emergency Service - Fire, Ambulance, Rescue"
+    },
+    "2": {
+      "name": "Police Emergency",
+      "description": "Pakistan Police Emergency Helpline"
+    },
+    "3": {
+      "name": "Edhi Ambulance",
+      "description": "Edhi Foundation Emergency Ambulance Service"
+    },
+    "4": {
+      "name": "NDMA Emergency",
+      "description": "National Disaster Management Authority Emergency Line"
+    },
+    "5": {
+      "name": "PDMA",
+      "description": "Provincial Disaster Management Authority"
+    },
+    "6": {
+      "name": "Fire Brigade Karachi",
+      "description": "Karachi Metropolitan Corporation Fire Brigade"
+    },
+    "7": {
+      "name": "Fire Brigade Lahore",
+      "description": "Lahore Fire & Rescue Service"
+    },
+    "8": {
+      "name": "Fire Brigade Islamabad",
+      "description": "Capital Development Authority Fire Service"
+    },
+    "9": {
+      "name": "Chippa Ambulance",
+      "description": "Chippa Welfare Association Ambulance Service"
+    },
+    "10": {
+      "name": "Aman Ambulance",
+      "description": "Aman Health Care Ambulance Service"
+    },
+    "11": {
+      "name": "Red Crescent",
+      "description": "Pakistan Red Crescent Society Emergency"
+    },
+    "12": {
+      "name": "K-Electric Emergency",
+      "description": "K-Electric Power Emergency Hotline"
+    },
+    "13": {
+      "name": "LESCO Emergency",
+      "description": "Lahore Electric Supply Company Emergency"
+    },
+    "14": {
+      "name": "SSGC Emergency",
+      "description": "Sui Southern Gas Company Emergency"
+    },
+    "15": {
+      "name": "WASA Emergency",
+      "description": "Water & Sanitation Agency Emergency"
+    },
+    "16": {
+      "name": "PM Citizens Portal",
+      "description": "Prime Minister Citizens Portal Helpline"
+    },
+    "17": {
+      "name": "Women Helpline",
+      "description": "National Commission on Status of Women Helpline"
+    },
+    "18": {
+      "name": "Child Protection",
+      "description": "Madadgaar National Child Protection Helpline"
+    },
+    "19": {
+      "name": "Cyber Crime FIA",
+      "description": "FIA Cyber Crime Reporting Helpline"
+    }
+  },
+  "safetyScreen": {
+    "title": "Safety Guidelines",
+    "subtitle": "Essential information to stay safe during emergencies."
+  },
+  "guidelines": {
+    "1": {
+      "title": "Flood Safety Guidelines",
+      "description": "Precautions and emergency actions during floods.",
+      "file": "flood_en.pdf"
+    },
+    "2": {
+      "title": "Heatwave Safety Guidelines",
+      "description": "Tips to stay cool and safe in extreme heat."
+    },
+    "3": {
+      "title": "Thunderstorm Safety Guidelines",
+      "description": "What to do when storms and lightning hit."
+    },
+    "4": {
+      "title": "Earthquake Safety Guidelines",
+      "description": "Steps to protect yourself during earthquakes.",
+      "file": "earthquake.pdf"
+    },
+    "5": {
+      "title": "Winter Smog Safety Guidelines",
+      "description": "How to protect yourself from air pollution and smog.",
+      "file": "smog.pdf"
+    }
+  }
 }

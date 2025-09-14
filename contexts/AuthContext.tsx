@@ -2,6 +2,8 @@ import {
   GoogleAuthProvider,
   User,
   createUserWithEmailAndPassword,
+  deleteUser,
+  getAuth,
   onAuthStateChanged,
   signInAnonymously,
   signInWithCredential,
@@ -9,7 +11,7 @@ import {
   signOut,
   updateProfile as updateFirebaseAuthProfile,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, {
   ReactNode,
   createContext,
@@ -22,10 +24,53 @@ import Constants from "expo-constants";
 
 // Import auth and db after they're initialized
 import { auth, db } from "../firebase/config";
+import { navigate } from "expo-router/build/global-state/routing";
 
 // Conditional Google Sign-in import
 let GoogleSignin: any = null;
 let statusCodes: any = null;
+
+const deleteCurrentUser = async () => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    return { success: false, error: "No user is currently signed in." };
+  }
+
+  try {
+    // Step 1: Delete the user's progress data from Firestore.
+    // It's safer to delete data before deleting the auth account.
+    const userProgressRef = doc(db, "userProgress", currentUser.uid);
+    await deleteDoc(userProgressRef);
+    console.log("Firestore data deleted for user:", currentUser.uid);
+
+    // Step 2: Delete the user from Firebase Authentication.
+    await deleteUser(currentUser);
+    console.log("Firebase Auth user deleted successfully.");
+    
+    // The onAuthStateChanged listener will automatically handle the logout state change.
+    navigate('(tabs)') 
+    return { success: true };
+
+
+  } catch (error: any) {
+    // console.error("Error deleting user account:", error);
+    
+    // Handle the common error where re-authentication is required for security.
+    if (error.code === 'auth/requires-recent-login') {
+      return { 
+        success: false, 
+        error: "This is a sensitive operation. Please sign out and sign back in before deleting your account." 
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: error.message || "An unknown error occurred during account deletion." 
+    };
+  }
+};
 
 // Only import Google Sign-in in development builds
 const initializeGoogleSignIn = async () => {
@@ -59,6 +104,7 @@ interface ProfileData {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  deleteCurrentUser: () => Promise<any>;
   initializing: boolean;
   isGoogleSignInAvailable: boolean;
   signInWithEmail: (email: string, password: string) => Promise<any>;
@@ -577,6 +623,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializing,
     isGoogleSignInAvailable,
     signInWithEmail,
+    deleteCurrentUser,
     signUpWithEmail,
     signInWithGoogle,
     signInAnonymouslyUser,

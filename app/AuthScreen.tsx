@@ -1,14 +1,14 @@
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
 import { RootStackParamList } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useNavigation } from "expo-router/build/useNavigation";
-import React, { useState, useRef, useCallback } from "react";
-import Constants from "expo-constants";
+import React, { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next"; // Import the hook
 import {
   ActivityIndicator,
   Alert,
@@ -17,17 +17,16 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
   useColorScheme,
-  StatusBar,
-  Pressable,
 } from "react-native";
-import { useTranslation } from "react-i18next"; // Import the hook
 
 type Props = NativeStackScreenProps<RootStackParamList, "AuthScreen">;
 

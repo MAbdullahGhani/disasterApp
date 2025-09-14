@@ -343,6 +343,7 @@ const styles = StyleSheet.create({
   actionSection: {
     padding: 20,
     backgroundColor: "transparent",
+    marginBottom: 20,
   },
   actionButton: {
     borderRadius: 15,

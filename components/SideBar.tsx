@@ -1,10 +1,11 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useNavigation } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next"; // Import the hook
 import {
   Alert,
   Animated,
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTranslation } from "react-i18next"; // Import the hook
 
 const { width, height } = Dimensions.get("window");
 
@@ -148,11 +148,6 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                   title={t("sidebar.signUp")}
                   onPress={() => handleMenuItemPress("AuthScreen")}
                 />
-                <MenuItemButton
-                  icon="call-outline"
-                  title={t("sidebar.emergencyContacts")}
-                  onPress={() => handleMenuItemPress("Emergency")}
-                />
               </>
             ) : (
               <>
@@ -167,11 +162,6 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                   onPress={() => handleMenuItemPress("Settings")}
                 />
                 <MenuItemButton
-                  icon="call-outline"
-                  title={t("sidebar.emergencyContacts")}
-                  onPress={() => handleMenuItemPress("Emergency")}
-                />
-                <MenuItemButton
                   icon="log-out-outline"
                   title={t("sidebar.signOutTitle")}
                   onPress={handleLogout}
@@ -179,6 +169,16 @@ export default function SidebarMenu({ visible, onClose }: SidebarMenuProps) {
                 />
               </>
             )}
+            <MenuItemButton
+              icon="call-outline"
+              title={t("sidebar.emergencyContacts")}
+              onPress={() => handleMenuItemPress("Emergency")}
+            />
+            <MenuItemButton
+              icon="call-outline"
+              title={t("safetyScreen.title")}
+              onPress={() => handleMenuItemPress("SafetyGuide")}
+            />
           </ThemedView>
 
           <ThemedView style={styles.footer}>

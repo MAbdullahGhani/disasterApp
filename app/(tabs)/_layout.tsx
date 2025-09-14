@@ -1,30 +1,28 @@
-import { Ionicons } from '@expo/vector-icons'; // Use Ionicons
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 1. Import the hook
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 
 export default function TabLayout() {
+  const { bottom } = useSafeAreaInsets(); // 2. Get the bottom safe area inset
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#4ECDC4', // Updated active color
-        tabBarInactiveTintColor: '#8E8E93', // Updated inactive color
+        tabBarActiveTintColor: '#4ECDC4',
+        tabBarInactiveTintColor: '#8E8E93',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-            paddingBottom: 10,
-            height: 70,
-          },
-          default: {
-            paddingBottom: 10,
-            height: 70,
-          },
-        }),
+        // 3. Update the tabBarStyle to be aware of the safe area
+        tabBarStyle: {
+          position: 'absolute', // Keep it in the layout flow on Android
+          height: 60 + bottom, // Add the inset to the total height
+          paddingBottom: 20 + bottom, // Add the inset to the bottom padding
+        },
       }}>
       <Tabs.Screen
         name="index"

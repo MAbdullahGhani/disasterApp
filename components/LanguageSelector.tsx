@@ -83,12 +83,6 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         // Set the new layout direction
         I18nManager.forceRTL(newIsRTL);
 
-        const languageNames = {
-          en: "English",
-          ur: "اردو",
-        };
-
-        const selectedLanguageName = languageNames[lang.code] || lang.label;
         setTimeout(async () => {
           await Updates.reloadAsync();
         }, 100);

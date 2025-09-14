@@ -1,24 +1,22 @@
+import { ThemedInput } from "@/components/ThemedInput";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/contexts/AuthContext";
-import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useNavigation } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
   Dimensions,
-  I18nManager,
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  InteractionManager,
+  TouchableOpacity
 } from "react-native";
-import { ThemedInput } from "@/components/ThemedInput";
-import { useNavigation } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -85,7 +83,7 @@ const InfoCard = React.memo(({
 });
 
 export default function ProfileScreen() {
-  const { user, updateUserProfile, fetchUserProfile } = useAuth();
+  const { user, updateUserProfile, fetchUserProfile, deleteCurrentUser  } = useAuth();
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -190,6 +188,38 @@ export default function ProfileScreen() {
     return user?.displayName || formData.displayName || user?.email || t("anonymousUser");
   }, [user?.displayName, formData.displayName, user?.email, t]);
 
+    const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      t("deleteAccountConfirmation.title"),
+      t("deleteAccountConfirmation.message"),
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("delete"),
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const result = await deleteCurrentUser();
+              if (result.success) {
+                Alert.alert(t("success"), t("accountDeletedSuccess"));
+                // The AuthContext listener will handle navigating the user away.
+              } else {
+                Alert.alert(t("error"), result.error || t("accountDeleteFailed"));
+              }
+            } catch (err) {
+              console.error("Deletion process failed:", err);
+              Alert.alert(t("error"), t("accountDeleteError"));
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  }, [deleteCurrentUser, t]);
+
   const profileImage = useMemo(
     () => (
       <ThemedText style={styles.profileAvatarText}>
@@ -206,7 +236,6 @@ export default function ProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-          {/* Fixed Header */}
           <ThemedView style={styles.header}>
             <TouchableOpacity style={styles.headerButton} onPress={handleGoBack}>
               <Ionicons name="arrow-back" size={24} color="#aaa" />
@@ -251,7 +280,6 @@ export default function ProfileScreen() {
             // Touch response fixes
             directionalLockEnabled={false}
             canCancelContentTouches={true}
-            delayContentTouches={false}
             // Performance props
             removeClippedSubviews={false}
             nestedScrollEnabled={false}
@@ -318,7 +346,7 @@ export default function ProfileScreen() {
             </ThemedView>
 
             {/* Account Stats Section */}
-            <ThemedView style={styles.section}>
+            {/* <ThemedView style={styles.section}>
               <ThemedText style={styles.sectionTitle}>
                 {t("accountStats")}
               </ThemedText>
@@ -334,30 +362,20 @@ export default function ProfileScreen() {
                   <ThemedText style={styles.statLabel}>{t("areasMonitored")}</ThemedText>
                 </ThemedView>
               </ThemedView>
-            </ThemedView>
-
-            {/* Action Buttons Section */}
-            {/* <ThemedView style={styles.section}>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                activeOpacity={0.7}
-                delayPressIn={0}
-              >
-                <Ionicons name="download-outline" size={20} color="#4ECDC4" />
-                <ThemedText style={styles.actionText}>{t("downloadMyData")}</ThemedText>
-                <Ionicons name="chevron-forward" size={16} color="#999" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                activeOpacity={0.7}
-                delayPressIn={0}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                <ThemedText style={[styles.actionText, { color: "#FF6B6B" }]}>{t("deleteAccount")}</ThemedText>
-                <Ionicons name="chevron-forward" size={16} color="#999" />
-              </TouchableOpacity>
             </ThemedView> */}
 
+            {/* Action Buttons Section */}
+            <TouchableOpacity
+                style={styles.deleteSection}
+              activeOpacity={0.7}
+              // delayPressIn={0}
+              onPress={handleDeleteAccount}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+              <ThemedText style={[styles.actionText, { color: "#FF6B6B" }]}>
+                {t("deleteAccount")}
+              </ThemedText>
+            </TouchableOpacity>
             {/* Add padding at bottom for better scrolling */}
             <ThemedView style={styles.bottomPadding} />
           </ScrollView>
@@ -435,12 +453,11 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
+    paddingTop: 25,
     paddingVertical: 15,
     paddingHorizontal: 15,
     borderRadius: 10,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)'
   },
   card: {
     borderRadius: 15,
@@ -468,6 +485,17 @@ const styles = StyleSheet.create({
   section: {
     padding: 20,
     paddingTop: 10,
+  },
+  deleteSection: {
+    borderRadius: 15,
+    marginTop: 3,
+    borderWidth: 1,
+    margin: 20,
+    borderColor: 'rgba(255, 0, 0, 1)'  ,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,

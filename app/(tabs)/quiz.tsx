@@ -132,6 +132,8 @@ export default function QuizScreen() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [showTopicSelection, setShowTopicSelection] = useState(true);
   const [isLearningMode, setIsLearningMode] = useState(false);
+    const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]); // <-- Add this line
+
   const { user, isAuthenticated } = useAuth();
   const [notiSidebarVisible, setNotiSidebarVisible] = useState(false);
 
@@ -173,13 +175,17 @@ export default function QuizScreen() {
     };
   };
 
-  const getCurrentQuestions = () => {
-    const topic = quizTopics.find((t) => t.id === selectedTopic);
-    return topic ? topic.questions : [];
-  };
 
   const getCurrentTopic = () => {
     return quizTopics.find((t) => t.id === selectedTopic);
+  };
+   const shuffleArray = (array: any[]) => {
+    const newArray = [...array]; // Create a copy to avoid mutating the original
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]]; // Swap elements
+    }
+    return newArray;
   };
 
   const selectAnswer = (index: number) => {
@@ -191,7 +197,7 @@ export default function QuizScreen() {
   const submitAnswer = () => {
     if (quizState.selectedAnswer === null && !isLearningMode) return;
 
-    const questions = getCurrentQuestions();
+const questions = activeQuestions;
     const isCorrect =
       quizState.selectedAnswer ===
       questions[quizState.currentQuestion].correctAnswer;
@@ -215,6 +221,26 @@ export default function QuizScreen() {
   };
 
   const resetQuiz = () => {
+    // Re-shuffle questions for the current topic
+    if (selectedTopic) {
+      const topic = quizTopics.find((t) => t.id === selectedTopic);
+      if (topic) {
+        const shuffledQuestions = topic.questions.map((q) => {
+          const correctAnswerText = q.options[q.correctAnswer];
+          const shuffledOptions = shuffleArray(q.options);
+          const newCorrectAnswerIndex =
+            shuffledOptions.indexOf(correctAnswerText);
+          return {
+            ...q,
+            options: shuffledOptions,
+            correctAnswer: newCorrectAnswerIndex,
+          };
+        });
+        setActiveQuestions(shuffledQuestions);
+      }
+    }
+
+    // Reset the quiz state as before
     setQuizState({
       currentQuestion: 0,
       selectedAnswer: null,
@@ -246,13 +272,35 @@ export default function QuizScreen() {
       return;
     }
 
+    const topic = quizTopics.find((t) => t.id === topicId);
+    if (!topic) return;
+
+    // Create a new set of questions with shuffled options
+    const shuffledQuestions = topic.questions.map((q) => {
+      // Find the correct answer text before shuffling
+      const correctAnswerText = q.options[q.correctAnswer];
+      
+      // Shuffle the options
+      const shuffledOptions = shuffleArray(q.options);
+      
+      // Find the new index of the correct answer in the shuffled array
+      const newCorrectAnswerIndex = shuffledOptions.indexOf(correctAnswerText);
+
+      return {
+        ...q,
+        options: shuffledOptions,
+        correctAnswer: newCorrectAnswerIndex,
+      };
+    });
+
+    setActiveQuestions(shuffledQuestions);
     setSelectedTopic(topicId);
     setShowTopicSelection(false);
     resetQuiz();
   };
 
   const RenderResult = () => {
-    const questions = getCurrentQuestions();
+const questions = activeQuestions;
     const percentage = Math.round((quizState.score / questions.length) * 100);
     const isGoodScore = percentage >= 70;
     const showLearnButton = percentage < 60;
@@ -497,8 +545,8 @@ export default function QuizScreen() {
           </View>
 
           {!isAuthenticated && (
-            <View style={styles.signupPrompt}>
-              <ThemedView>
+            <View style={styles.signupCard}>
+              <View>
                 <ThemedText type="subtitle" style={styles.signupTitle}>
                   {t("ui.unlockTitle")}
                 </ThemedText>
@@ -518,7 +566,7 @@ export default function QuizScreen() {
                     {t("ui.signupButton")}
                   </ThemedText>
                 </TouchableOpacity>
-              </ThemedView>
+              </View>
             </View>
           )}
         </ScrollView>
@@ -535,7 +583,7 @@ export default function QuizScreen() {
     );
   }
 
-  const questions = getCurrentQuestions();
+const questions = activeQuestions;
   const topic = getCurrentTopic();
   const themeColors = getThemeColors();
   const currentQuestion = questions[quizState.currentQuestion];
@@ -688,6 +736,7 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 15,
   },
   header: {
     flexDirection: "row",
@@ -834,17 +883,13 @@ const styles = StyleSheet.create({
   signupPrompt: {
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 25,
   },
   signupCard: {
     borderRadius: 16,
-    padding: 24,
     alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
     borderWidth: 2,
+    margin: 29,
     borderColor: "#FF9800",
   },
   signupTitle: {
@@ -855,7 +900,7 @@ const styles = StyleSheet.create({
   signupDescription: {
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   signupButton: {
     backgroundColor: "#FF9800",
@@ -863,6 +908,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 25,
     elevation: 2,
+    margin: 15,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -871,6 +917,7 @@ const styles = StyleSheet.create({
   signupButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    textAlign: "center",
     fontWeight: "600",
   },
   questionSection: {
