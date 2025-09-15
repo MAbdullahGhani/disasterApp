@@ -10,6 +10,7 @@ web-build/
 expo-env.d.ts
 
 # Native folders (not needed for Expo Go)
+android/
 ios/
 
 # Native
