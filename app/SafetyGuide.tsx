@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import {  MaterialIcons as Icon, Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from 'expo-file-system/legacy';
 import { useNavigation } from "expo-router";
 import { navigate } from "expo-router/build/global-state/routing";
 import * as WebBrowser from "expo-web-browser";

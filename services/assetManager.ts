@@ -1,5 +1,5 @@
 import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Define your PDF assets here. The key is the final filename,
 // and the value is the require() path.
