@@ -5,7 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/useProgress';
 import { useRTL } from '@/hooks/useRTL';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

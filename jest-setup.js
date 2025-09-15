@@ -70,9 +70,40 @@ jest.mock("@react-navigation/native", () => ({
 }));
 
 jest.mock('expo-router', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
-  useRouter: () => ({ push: jest.fn() }),
-  router: { push: jest.fn(), replace: jest.fn() },
+  __esModule: true,
+  useNavigation: () => ({ 
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+    dispatch: jest.fn(),
+  }),
+  useRouter: () => ({ 
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    canGoBack: jest.fn(() => true),
+  }),
+  router: { 
+    push: jest.fn(), 
+    replace: jest.fn(),
+    back: jest.fn(),
+    canGoBack: jest.fn(() => true),
+  },
+  Stack: {
+    Screen: ({ children, ...props }) => {
+      const React = require('react');
+      return React.createElement('div', props, children);
+    },
+  },
+  Tabs: {
+    Screen: ({ children, ...props }) => {
+      const React = require('react');
+      return React.createElement('div', props, children);
+    },
+  },
+  Link: ({ children, ...props }) => {
+    const React = require('react');
+    return React.createElement('a', props, children);
+  },
 }));
 
 // Mock ThemedView and ThemedText

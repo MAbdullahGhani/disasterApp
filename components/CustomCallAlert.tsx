@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Modal from 'react-native-modal';
-import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
-import { Ionicons } from '@expo/vector-icons';
+import { ThemedView } from './ThemedView';
 
 interface Button {
   text: string;

@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { useAuth } from "@/contexts/AuthContext";
 import { RootStackParamList } from "@/types";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";

@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/ThemedView";
 import NotificationService, {
     NotificationData,
 } from "@/services/notificationService";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

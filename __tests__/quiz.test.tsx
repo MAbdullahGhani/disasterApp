@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
-import QuizScreen from '../app/(tabs)/quiz'; // Adjust path as needed
+import QuizScreen from '@/app/(tabs)/quiz';
 
 // Mock the useProgress hook
 const mockUseProgress = {

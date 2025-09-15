@@ -1,10 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 1. Import the hook
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const { bottom } = useSafeAreaInsets(); // 2. Get the bottom safe area inset
