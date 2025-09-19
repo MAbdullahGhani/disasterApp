@@ -12,6 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import * as Updates from "expo-updates";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 
 // Import your translation files
 import enTranslations from "../i18n/en.json";
@@ -37,6 +38,7 @@ const LANGUAGES: Language[] = [
   { code: "en", label: "English", isRTL: false },
   { code: "ur", label: "Urdu (اردو)", isRTL: true },
 ];
+const isExpoGo = Constants.appOwnership === "expo";
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   isVisible,
@@ -83,9 +85,19 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         // Set the new layout direction
         I18nManager.forceRTL(newIsRTL);
 
-        setTimeout(async () => {
-          await Updates.reloadAsync();
-        }, 100);
+     if (isExpoGo) {
+          // In Expo Go, we can't reload. Alert the user to do it manually.
+          Alert.alert(
+            "Restart Required",
+            "Please manually close and reopen the app to apply the language layout.",
+            [{ text: "OK", onPress: onClose }]
+          );
+        } else {
+          // In a development build, reload automatically.
+          setTimeout(async () => {
+            await Updates.reloadAsync();
+          }, 100);
+        }
         // Alert.alert(
         //   "Restart Required",
         //   `Switching to ${selectedLanguageName} requires an app restart to apply the correct text direction.`,

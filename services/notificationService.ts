@@ -120,7 +120,7 @@ const checkFCMAvailability = async (): Promise<boolean> => {
 class NotificationService {
   private expoPushToken: string | null = null;
   private fcmToken: string | null = null;
-  private listeners: (() => void)[] = [];
+  private listeners: Notifications.Subscription[] = [];
   private onNotificationReceived?: (notification: NotificationData) => void;
   private isInitialized = false;
   private shownAlerts: Set<string> = new Set();
@@ -357,9 +357,7 @@ class NotificationService {
       }
 
       const notificationData: NotificationData = {
-        id: `location_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`,
+        id: `location_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type,
         title,
         message: body,
@@ -593,10 +591,7 @@ class NotificationService {
           }
         );
 
-      this.listeners.push(() => {
-        Notifications.removeNotificationSubscription(notificationListener);
-        Notifications.removeNotificationSubscription(responseListener);
-      });
+      this.listeners.push(notificationListener, responseListener);
 
       console.log("✅ Notification listeners setup completed");
     } catch (error: any) {
@@ -668,8 +663,16 @@ class NotificationService {
           importance: Notifications.AndroidImportance.HIGH,
           sound: "default",
         },
-        { id: "medium", name: "Standard Alerts", importance: Notifications.AndroidImportance.DEFAULT },
-        { id: "low", name: "Information", importance: Notifications.AndroidImportance.LOW },
+        {
+          id: "medium",
+          name: "Standard Alerts",
+          importance: Notifications.AndroidImportance.DEFAULT,
+        },
+        {
+          id: "low",
+          name: "Information",
+          importance: Notifications.AndroidImportance.LOW,
+        },
       ];
       for (const channel of channels) {
         await Notifications.setNotificationChannelAsync(channel.id, channel);
@@ -771,19 +774,12 @@ class NotificationService {
     };
     const type = alertType ? typeMap[alertType] || "emergency" : "emergency";
 
-    return this.scheduleLocalAlert(
-      title,
-      message,
-      priority,
-      type,
-      location,
-      {
-        isNDMA: true,
-        affectedAreas,
-        instructions,
-        alertType,
-      }
-    );
+    return this.scheduleLocalAlert(title, message, priority, type, location, {
+      isNDMA: true,
+      affectedAreas,
+      instructions,
+      alertType,
+    });
   }
 
   async scheduleEmergencyAlert(
@@ -835,14 +831,10 @@ class NotificationService {
   ) {
     const priority =
       magnitude >= 6.0 ? "critical" : magnitude >= 5.0 ? "high" : "medium";
-    return this.scheduleLocalAlert(
-      title,
-      body,
-      priority,
-      "seismic",
-      location,
-      { magnitude, ...seismicData }
-    );
+    return this.scheduleLocalAlert(title, body, priority, "seismic", location, {
+      magnitude,
+      ...seismicData,
+    });
   }
 
   async scheduleLocalAlert(
@@ -861,9 +853,7 @@ class NotificationService {
       }
 
       const notificationData: NotificationData = {
-        id: `local_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`,
+        id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type,
         title,
         message: body,
@@ -871,7 +861,7 @@ class NotificationService {
         read: false,
         location,
         priority,
-        source: data?.isNDMA ? "ndma" : (this.isFCMAvailable ? "system" : "expo"),
+        source: data?.isNDMA ? "ndma" : this.isFCMAvailable ? "system" : "expo",
         data,
         alertHash,
       };
@@ -990,7 +980,9 @@ class NotificationService {
   }
 
   cleanup() {
-    this.listeners.forEach((remove) => remove());
+    // CHANGE THIS PART
+    this.listeners.forEach((subscription) => subscription.remove());
+
     this.listeners = [];
     if (this.appStateListener) {
       this.appStateListener.remove();

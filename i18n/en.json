@@ -996,5 +996,6 @@
       "description": "How to protect yourself from air pollution and smog.",
       "file": "smog.pdf"
     }
-  }
+  },
+  "close": "Close"
 }
