@@ -21,14 +21,12 @@ import urTranslations from "../i18n/ur.json";
 const LANGUAGE_STORAGE_KEY = "@app_language";
 const RTL_LANGUAGES = ["ur", "ar", "he", "fa"];
 
-// Define the shape of a language object
 interface Language {
   code: string;
   label: string;
   isRTL: boolean;
 }
 
-// Define the component's props
 interface LanguageSelectorProps {
   isVisible: boolean;
   onClose: () => void;
@@ -38,7 +36,11 @@ const LANGUAGES: Language[] = [
   { code: "en", label: "English", isRTL: false },
   { code: "ur", label: "Urdu (اردو)", isRTL: true },
 ];
+
+// CORRECT way to detect build type
 const isExpoGo = Constants.appOwnership === "expo";
+const isStandaloneApp = Constants.appOwnership === "standalone";
+const isDevelopmentBuild = Constants.appOwnership === "guest" || __DEV__;
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   isVisible,
@@ -61,9 +63,9 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       }
 
       // Add the appropriate resource bundle
-      if (lang.code === "en") {
+      if (lang.code === "en" && !i18n.hasResourceBundle("en", "translation")) {
         i18n.addResourceBundle("en", "translation", enTranslations, true, true);
-      } else if (lang.code === "ur") {
+      } else if (lang.code === "ur" && !i18n.hasResourceBundle("ur", "translation")) {
         i18n.addResourceBundle("ur", "translation", urTranslations, true, true);
       }
 
@@ -80,73 +82,81 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       // Enable RTL support
       I18nManager.allowRTL(true);
 
-      // Always reload if switching between different layout directions
+      // Handle RTL changes based on build type
       if (newIsRTL !== currentIsRTL) {
         // Set the new layout direction
         I18nManager.forceRTL(newIsRTL);
 
-     if (isExpoGo) {
-          // In Expo Go, we can't reload. Alert the user to do it manually.
+        if (isExpoGo) {
+          // In Expo Go, show manual restart alert
           Alert.alert(
             "Restart Required",
             "Please manually close and reopen the app to apply the language layout.",
-            [{ text: "OK", onPress: onClose }]
+            [{ 
+              text: "OK", 
+              onPress: () => {
+                setLoading(false);
+                onClose();
+              }
+            }]
           );
         } else {
-          // In a development build, reload automatically.
-          setTimeout(async () => {
-            await Updates.reloadAsync();
-          }, 100);
+          // In native builds (APK/development builds), try automatic reload
+          console.log("Attempting automatic app reload for RTL change...");
+          
+          try {
+            // Close modal immediately
+            onClose();
+            setLoading(false);
+
+            // Check if Updates.reloadAsync is available
+            if (Updates.reloadAsync) {
+              // Small delay to ensure state is clean
+              setTimeout(async () => {
+                try {
+                  await Updates.reloadAsync();
+                } catch (reloadError) {
+                  console.error("Updates.reloadAsync failed:", reloadError);
+                  // Fallback to manual restart alert
+                  Alert.alert(
+                    "Restart Required",
+                    "Please manually close and reopen the app to apply the language changes.",
+                    [{ text: "OK" }]
+                  );
+                }
+              }, 500);
+            } else {
+              // Updates not available, show manual restart
+              Alert.alert(
+                "Restart Required", 
+                "Please manually close and reopen the app to apply the language changes.",
+                [{ text: "OK" }]
+              );
+            }
+          } catch (error) {
+            console.error("Error during automatic reload:", error);
+            Alert.alert(
+              "Restart Required",
+              "Please manually close and reopen the app to apply the language changes.",
+              [{ text: "OK" }]
+            );
+          }
         }
-        // Alert.alert(
-        //   "Restart Required",
-        //   `Switching to ${selectedLanguageName} requires an app restart to apply the correct text direction.`,
-        //   [
-        //     {
-        //       text: "Cancel",
-        //       style: "cancel",
-        //       onPress: async () => {
-        //         // Revert language change if user cancels
-        //         await i18n.changeLanguage(currentLanguage);
-        //         await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
-        //         setLoading(false);
-        //       }
-        //     },
-        //     {
-        //       text: "Restart Now",
-        //       onPress: async () => {
-        //         try {
-        //           // Small delay to ensure language is saved
-        //           setTimeout(async () => {
-        //             await Updates.reloadAsync();
-        //           }, 100);
-        //         } catch (error) {
-        //           console.error('Error restarting app:', error);
-        //           Alert.alert(
-        //             "Manual Restart Required",
-        //             "Please manually close and reopen the app to apply the language changes.",
-        //             [{ text: "OK" }]
-        //           );
-        //         }
-        //       },
-        //     },
-        //   ],
-        //   { cancelable: false }
-        // );
       } else {
         // Same layout direction, no restart needed
         console.log(`Language changed to ${lang.code} without restart`);
+        setLoading(false);
         onClose();
       }
 
-      setLoading(false);
     } catch (error) {
       console.error("Failed to change language:", error);
+      setLoading(false);
       Alert.alert(
         "Language Change Error",
-        "Could not change language. Please try again."
+        "Could not change language. Please try again.",
+        [{ text: "OK", onPress: onClose }]
       );
-      setLoading(false);
     }
   };
 
@@ -161,7 +171,10 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <View style={styles.container}>
           <Text style={styles.title}>{t("selectLanguage")}</Text>
           {loading ? (
-            <ActivityIndicator size="large" color="#4ECDC4" />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4ECDC4" />
+              <Text style={styles.loadingText}>Switching language...</Text>
+            </View>
           ) : (
             LANGUAGES.map((lang) => (
               <TouchableOpacity
@@ -210,6 +223,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 20,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
   },
   languageButton: {
     width: "100%",
